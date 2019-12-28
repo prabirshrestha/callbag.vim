@@ -5,8 +5,10 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 ## Example
 
 ```viml
+let s:i = 0
 function! s:log(x) abort
-    echom a:x
+    let s:i += 1
+    echom 'log ' . s:i . '   ' . a:x
 endfunction
 
 function! callbag#demo() abort
@@ -19,8 +21,9 @@ function! callbag#demo() abort
         \ callbag#forEach({x -> s:log(x) }),
         \ )
     call callbag#pipe(
-        \ callbag#fromEvent('InsertEnter'),
-        \ callbag#forEach({x -> s:log('InsertEnter') }),
+        \ callbag#fromEvent(['TextChangedI', 'TextChangedP']),
+        \ callbag#debounceTime(250),
+        \ callbag#forEach({x -> s:log('text changed') }),
         \ )
     call callbag#pipe(
         \ callbag#fromEvent('InsertLeave'),
@@ -33,6 +36,7 @@ endfunction
 
 | Implemented   | Operators                                              |
 |---------------|--------------------------------------------------------|
+| Yes           | debounceTime                                           |
 | Yes           | filter                                                 |
 | Yes           | forEach                                                |
 | Yes           | fromEvent                                              |

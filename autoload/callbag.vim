@@ -228,4 +228,35 @@ function! s:notify_event_handler(index) abort
 endfunction
 " }}}
 
+" debounceTime() {{{
+function! callbag#debounceTime(duration) abort
+    let l:data = { 'duration': a:duration }
+    return function('s:debounceTimeDuration', [l:data])
+endfunction
+
+function! s:debounceTimeDuration(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:debounceTimeDurationSource', [a:data])
+endfunction
+
+function! s:debounceTimeDurationSource(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    call a:data['source'](0, function('s:debounceTimeSourceCallback', [a:data]))
+endfunction
+
+function! s:debounceTimeSourceCallback(data, t, ...) abort
+    if has_key(a:data, 'timer') | call timer_stop(a:data['timer']) | endif
+    if a:t == 1
+        let a:data['timer'] = timer_start(a:data['duration'], function('s:debounceTimeTimerCallback', [a:data, a:1]))
+    else
+        call a:data['sink'](a:t, a:1)
+    endif
+endfunction
+
+function! s:debounceTimeTimerCallback(data, d, ...) abort
+    call a:data['sink'](1, a:d)
+endfunction
+" }}}
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
