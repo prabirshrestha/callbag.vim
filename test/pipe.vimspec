@@ -1,0 +1,77 @@
+let s:assert = themis#helper('assert')
+
+Describe callbag#pipe
+
+    It calls first-order function in sequence LTR
+        let l:res = callbag#pipe(
+                    \ 2,
+                    \ {x -> x * 10},
+                    \ {x -> x - 3},
+                    \ {x -> x + 5},
+                    \ )
+
+        Assert Equals(l:res, 22)
+    End
+
+    It calls first-order functions in a nested pipe
+        let l:res = callbag#pipe(
+                    \ 2,
+                    \ {s -> callbag#pipe(s, {x-> x * 10}, {x-> x - 3})},
+                    \ {x -> x + 5}
+                    \ )
+        Assert Equals(l:res, 22)
+    End
+
+    It calls high-order callbacks in sequence LTR
+        function! s:prev1(Prev, Cb) abort
+            return a:Prev({x->a:Cb(x*10)})
+        endfunction
+        function! s:prev2(Prev, Cb) abort
+            return a:Prev({x->a:Cb(x-3)})
+        endfunction
+        function! s:prev3(Prev, Cb) abort
+            return a:Prev({x->a:Cb(x+5)})
+        endfunction
+        
+        let l:Res = callbag#pipe(
+                    \ {cb -> cb(2)},
+                    \ {prev-> function('s:prev1', [prev]) },
+                    \ {prev-> function('s:prev2', [prev]) },
+                    \ {prev-> function('s:prev3', [prev]) },
+                    \ )
+        Assert IsFunction(l:Res)
+
+        call l:Res({x-> s:assert.equals(x, 22) })    
+    End
+
+    It can be nested
+        function! s:prev1(Prev, Cb) abort
+            return a:Prev({x->a:Cb(x*10)})
+        endfunction
+        function! s:prev2(Prev, Cb) abort
+            return a:Prev({x->a:Cb(x-3)})
+        endfunction
+        function! s:prev3(Prev, Cb) abort
+            return a:Prev({x->a:Cb(x+5)})
+        endfunction
+
+        function! s:nested(s) abort
+            return callbag#pipe(
+                        \ a:s,
+                        \ {prev-> function('s:prev1', [prev]) },
+                        \ {prev-> function('s:prev2', [prev]) },
+                        \ )
+        endfunction
+
+        let l:Res = callbag#pipe(
+                    \ {cb->cb(2)},
+                    \ {s->s:nested(s)},
+                    \ {prev-> function('s:prev3', [prev]) },
+                    \ )
+
+        Assert IsFunction(l:Res)
+
+        call l:Res({x-> s:assert.equals(x, 22) })
+    End
+
+End
