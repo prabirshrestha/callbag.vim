@@ -19,5 +19,13 @@ function! rx#callbag#demo() abort
         \ rx#callbag#map({x-> x * 1000}),
         \ rx#callbag#forEach({x -> s:log(x) }),
         \ )
+    call rx#callbag#pipe(
+        \ rx#callbag#fromEvent('InsertEnter'),
+        \ rx#callbag#forEach({x -> s:log('InsertEnter') }),
+        \ )
+    call rx#callbag#pipe(
+        \ rx#callbag#fromEvent('InsertLeave'),
+        \ rx#callbag#forEach({x -> s:log('InsertLeave') }),
+        \ )
 endfunction
 ```

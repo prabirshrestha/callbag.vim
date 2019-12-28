@@ -105,6 +105,7 @@ function! s:takeSourceCallback(data, t, ...) abort
 endfunction
 " }}}
 
+" map() {{{
 function! rx#callbag#map(F) abort
     let l:data = { 'f': a:F }
     return function('s:mapF', [l:data])
@@ -128,5 +129,70 @@ function! s:mapFSourceCallback(data, t, ...) abort
         call a:data['sink'](a:t, a:t == 1 ? a:data['f'](0) : 0)
     endif
 endfunction
+" }}}
+
+""" fromEvent() {{{
+let s:event_prefix_index = 0
+function! rx#callbag#fromEvent(events, ...) abort
+    let l:data = { 'events': a:events }
+    if a:0 > 0
+        let l:data['augroup'] = a:1
+    else
+        let l:data['augroup'] = 'rx_callback_event_prefix_' + s:event_prefix_index
+        let s:event_prefix_index = s:event_prefix_index + 1
+    endif
+    return function('s:fromEventName', [l:data])
+endfunction
+
+let s:event_handler_index = 0
+let s:event_handlers_data = {}
+function! s:fromEventName(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['disposed'] = 0
+    let a:data['sink']  = a:sink
+    let a:data['handler'] = function('s:fromEventHandler', [a:data])
+    let a:data['handler_index'] = s:event_handler_index
+    call a:sink(0, function('s:fromEventNameSinkHandler', [a:data]))
+
+    if a:data['disposed'] | return | endif
+
+    let s:event_handlers_data[a:data['handler_index']] = a:data
+    let s:event_handler_index = s:event_handler_index + 1
+
+    execute 'augroup ' a:data['augroup']
+        autocmd!
+        let l:events = type(a:data['events']) == type('') ? [a:data['events']] : a:data['events']
+        for l:event in l:events
+            let l:exec =  'call s:notify_event_handler(' . a:data['handler_index'] . ')'
+            if type(l:event) == type('')
+                execute 'au ' . l:event . ' * ' . l:exec
+            else
+                execute 'au ' . join(l:event, ' ') .' ' .  l:exec
+            endif
+        endfor
+    execute 'augroup end'
+endfunction
+
+function! s:fromEventHandler(data) abort
+    " send v:event if it exists
+    call a:data['sink'](1, {})
+endfunction
+
+function! s:fromEventNameSinkHandler(data, t) abort
+    if a:t != 2 | return | endif
+    let a:data['disposed'] = 1
+    execute 'augroup ' a:data['augroup']
+        autocmd!
+    execute 'augroup end'
+    if has_key(s:event_handlers_data, a:data['handler_index'])
+        call remove(s:event_handlers_data, a:data['handler_index'])
+    endif
+endfunction
+
+function! s:notify_event_handler(index) abort
+    let l:data = s:event_handlers_data[a:index]
+    call l:data['handler']()
+endfunction
+" }}}
 
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
