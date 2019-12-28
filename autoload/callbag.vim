@@ -1,5 +1,5 @@
 " pipe() {{{
-function! rx#callbag#pipe(...) abort
+function! callbag#pipe(...) abort
     let l:Res = a:1
     let l:i = 1
     while l:i < a:0
@@ -11,7 +11,7 @@ endfunction
 " }}}
 
 " forEach() {{{
-function! rx#callbag#forEach(operation) abort
+function! callbag#forEach(operation) abort
     let l:data = { 'operation': a:operation }
     return function('s:forEachOperation', [l:data])
 endfunction
@@ -28,7 +28,7 @@ endfunction
 " }}}
 
 " interval() {{{
-function! rx#callbag#interval(period) abort
+function! callbag#interval(period) abort
     let l:data = { 'period': a:period }
     return function('s:intervalPeriod', [l:data])
 endfunction
@@ -53,7 +53,7 @@ endfunction
 " }}}
 
 " take() {{{
-function! rx#callbag#take(max) abort
+function! callbag#take(max) abort
     let l:data = { 'max': a:max }
     return function('s:takeMax', [l:data])
 endfunction
@@ -106,7 +106,7 @@ endfunction
 " }}}
 
 " map() {{{
-function! rx#callbag#map(F) abort
+function! callbag#map(F) abort
     let l:data = { 'f': a:F }
     return function('s:mapF', [l:data])
 endfunction
@@ -132,7 +132,7 @@ endfunction
 " }}}
 
 " filter() {{{
-function! rx#callbag#filter(condition) abort
+function! callbag#filter(condition) abort
     let l:data = { 'condition': a:condition }
     return function('s:filterCondition', [l:data])
 endfunction
@@ -166,7 +166,7 @@ endfunction
 
 " fromEvent() {{{
 let s:event_prefix_index = 0
-function! rx#callbag#fromEvent(events, ...) abort
+function! callbag#fromEvent(events, ...) abort
     let l:data = { 'events': a:events }
     if a:0 > 0
         let l:data['augroup'] = a:1

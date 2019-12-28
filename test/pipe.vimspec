@@ -1,9 +1,9 @@
 let s:assert = themis#helper('assert')
 
-Describe rx#callbag#pipe
+Describe callbag#pipe
 
     It calls first-order function in sequence LTR
-        let l:res = rx#callbag#pipe(
+        let l:res = callbag#pipe(
                     \ 2,
                     \ {x -> x * 10},
                     \ {x -> x - 3},
@@ -14,9 +14,9 @@ Describe rx#callbag#pipe
     End
 
     It calls first-order functions in a nested pipe
-        let l:res = rx#callbag#pipe(
+        let l:res = callbag#pipe(
                     \ 2,
-                    \ {s -> rx#callbag#pipe(s, {x-> x * 10}, {x-> x - 3})},
+                    \ {s -> callbag#pipe(s, {x-> x * 10}, {x-> x - 3})},
                     \ {x -> x + 5}
                     \ )
         Assert Equals(l:res, 22)
@@ -32,8 +32,8 @@ Describe rx#callbag#pipe
         function! s:prev3(Prev, Cb) abort
             return a:Prev({x->a:Cb(x+5)})
         endfunction
-        
-        let l:Res = rx#callbag#pipe(
+
+        let l:Res = callbag#pipe(
                     \ {cb -> cb(2)},
                     \ {prev-> function('s:prev1', [prev]) },
                     \ {prev-> function('s:prev2', [prev]) },
@@ -41,7 +41,7 @@ Describe rx#callbag#pipe
                     \ )
         Assert IsFunction(l:Res)
 
-        call l:Res({x-> s:assert.equals(x, 22) })    
+        call l:Res({x-> s:assert.equals(x, 22) })
     End
 
     It can be nested
@@ -56,14 +56,14 @@ Describe rx#callbag#pipe
         endfunction
 
         function! s:nested(s) abort
-            return rx#callbag#pipe(
+            return callbag#pipe(
                         \ a:s,
                         \ {prev-> function('s:prev1', [prev]) },
                         \ {prev-> function('s:prev2', [prev]) },
                         \ )
         endfunction
 
-        let l:Res = rx#callbag#pipe(
+        let l:Res = callbag#pipe(
                     \ {cb->cb(2)},
                     \ {s->s:nested(s)},
                     \ {prev-> function('s:prev3', [prev]) },

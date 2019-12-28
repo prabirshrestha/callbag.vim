@@ -1,8 +1,6 @@
-# rx.vim
+# callbag.vim
 
-Lightweight observables and iterables for VimScript based on [Callbag](https://github.com/callbag/callbag)
-
-Currently only callbags are implemented. There are plans to implement Rx based of callbags in future.
+Lightweight observables and iterables for VimScript based on [Callbag Spec](https://github.com/callbag/callbag)
 
 ## Example
 
@@ -11,22 +9,22 @@ function! s:log(x) abort
     echom a:x
 endfunction
 
-function! rx#callbag#demo() abort
-    call rx#callbag#pipe(
-        \ rx#callbag#interval(1000),
-        \ rx#callbag#take(10),
-        \ rx#callbag#map({x-> x + 1}),
-        \ rx#callbag#filter({x-> x % 2 == 0}),
-        \ rx#callbag#map({x-> x * 1000}),
-        \ rx#callbag#forEach({x -> s:log(x) }),
+function! callbag#demo() abort
+    call callbag#pipe(
+        \ callbag#interval(1000),
+        \ callbag#take(10),
+        \ callbag#map({x-> x + 1}),
+        \ callbag#filter({x-> x % 2 == 0}),
+        \ callbag#map({x-> x * 1000}),
+        \ callbag#forEach({x -> s:log(x) }),
         \ )
-    call rx#callbag#pipe(
-        \ rx#callbag#fromEvent('InsertEnter'),
-        \ rx#callbag#forEach({x -> s:log('InsertEnter') }),
+    call callbag#pipe(
+        \ callbag#fromEvent('InsertEnter'),
+        \ callbag#forEach({x -> s:log('InsertEnter') }),
         \ )
-    call rx#callbag#pipe(
-        \ rx#callbag#fromEvent('InsertLeave'),
-        \ rx#callbag#forEach({x -> s:log('InsertLeave') }),
+    call callbag#pipe(
+        \ callbag#fromEvent('InsertLeave'),
+        \ callbag#forEach({x -> s:log('InsertLeave') }),
         \ )
 endfunction
 ```
