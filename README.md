@@ -28,3 +28,23 @@ function! callbag#demo() abort
         \ )
 endfunction
 ```
+
+## Operators
+
+| Implemented   | Operators                                              |
+|---------------|--------------------------------------------------------|
+| Yes           | filter                                                 |
+| Yes           | forEach                                                |
+| Yes           | fromEvent                                              |
+| Yes           | interval                                               |
+| Yes           | map                                                    |
+| Yes           | pipe                                                   |
+| Yes           | take                                                   |
+
+## License
+
+MIT
+
+## Author
+
+Prabir Shrestha
