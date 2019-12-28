@@ -105,4 +105,28 @@ function! s:takeSourceCallback(data, t, ...) abort
 endfunction
 " }}}
 
+function! rx#callbag#map(F) abort
+    let l:data = { 'f': a:F }
+    return function('s:mapF', [l:data])
+endfunction
+
+function! s:mapF(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:mapFSource', [a:data])
+endfunction
+
+function! s:mapFSource(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    call a:data['source'](0, function('s:mapFSourceCallback', [a:data]))
+endfunction
+
+function! s:mapFSourceCallback(data, t, ...) abort
+    if a:0 > 0
+        call a:data['sink'](a:t, a:t == 1 ? a:data['f'](a:1) : a:1)
+    else
+        call a:data['sink'](a:t, a:t == 1 ? a:data['f'](0) : 0)
+    endif
+endfunction
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:

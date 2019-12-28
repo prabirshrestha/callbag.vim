@@ -7,18 +7,16 @@ Currently only callbags are implemented. There are plans to implement Rx based o
 ## Example
 
 ```viml
-let s:i = 0
-function! s:next(cb) abort
-    echom s:i
-    let s:i = s:i + 1
+function! s:log(x) abort
+    echom a:x
 endfunction
 
 function! rx#callbag#demo() abort
-    let l:res = rx#callbag#pipe(
+    call rx#callbag#pipe(
         \ rx#callbag#interval(1000),
         \ rx#callbag#take(3),
-        \ rx#callbag#forEach(function('s:next')),
+        \ rx#callbag#map({x-> (x + 1) * 1000}),
+        \ rx#callbag#forEach({x -> s:log(x) }),
         \ )
-    return l:res
 endfunction
 ```
