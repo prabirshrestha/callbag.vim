@@ -1,5 +1,5 @@
 " pipe() {{{
-function! callbag#pipe(...) abort
+function! rx#callbag#pipe(...) abort
     let l:Res = a:1
     let l:i = 1
     while l:i < a:0
@@ -11,7 +11,7 @@ endfunction
 " }}}
 
 " forEach() {{{
-function! callbag#forEach(operation) abort
+function! rx#callbag#forEach(operation) abort
     let l:data = { 'operation': a:operation }
     return function('s:forEachOperation', [l:data])
 endfunction
@@ -28,7 +28,7 @@ endfunction
 " }}}
 
 " interval() {{{
-function! callbag#interval(period) abort
+function! rx#callbag#interval(period) abort
     let l:data = { 'period': a:period }
     return function('s:intervalPeriod', [l:data])
 endfunction
@@ -53,7 +53,7 @@ endfunction
 " }}}
 
 " take() {{{
-function! callbag#take(max) abort
+function! rx#callbag#take(max) abort
     let l:data = { 'max': a:max }
     return function('s:takeMax', [l:data])
 endfunction
@@ -111,13 +111,13 @@ function! s:next(cb) abort
     let s:i = s:i + 1
 endfunction
 
-function! callbag#demo() abort
-    let l:res = callbag#pipe(
-        \ callbag#interval(1000),
-        \ callbag#take(3),
-        \ callbag#forEach(function('s:next')),
+function! rx#callbag#demo() abort
+    let l:res = rx#callbag#pipe(
+        \ rx#callbag#interval(1000),
+        \ rx#callbag#take(3),
+        \ rx#callbag#forEach(function('s:next')),
         \ )
     return l:res
 endfunction
-"
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
