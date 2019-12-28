@@ -1,0 +1,7 @@
+let s:assert = themis#helper('assert')
+
+Describe callbag#forEach
+
+
+
+End
