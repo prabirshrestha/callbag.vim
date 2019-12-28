@@ -41,7 +41,7 @@ function! s:intervalPeriod(data, start, sink) abort
     call a:sink(0, function('s:interval_sink_callback', [a:data]))
 endfunction
 
-function! s:interval_callback(data, t, ...) abort
+function! s:interval_callback(data, ...) abort
     let l:i = a:data['i']
     let a:data['i'] = a:data['i'] + 1
     call a:data['sink'](1, l:i)
@@ -52,15 +52,69 @@ function! s:interval_sink_callback(data, t) abort
 endfunction
 " }}}
 
+" take() {{{
+function! callbag#take(max) abort
+    let l:data = { 'max': a:max }
+    return function('s:takeMax', [l:data])
+endfunction
+
+function! s:takeMax(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:takeMaxSource', [a:data])
+endfunction
+
+function! s:takeMaxSource(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['taken'] = 0
+    let a:data['end'] = 0
+    let a:data['sink'] = a:sink
+    let a:data['talkback'] = function('s:takeTalkback', [a:data])
+    call a:data['source'](0, function('s:takeSourceCallback', [a:data]))
+endfunction
+
+function! s:takeTalkback(data, t, ...) abort
+    if a:t == 2
+        let a:data['end'] = true
+        call a:data['sourceTalkback'](a:t, a:1)
+    elseif a:data['taken'] < a:data['max']
+        if a:0 > 0
+            call a:data['sourceTalkback'](a:t, a:1)
+        else
+            call a:data['sourceTalkback'](a:t)
+        endif
+    endif
+endfunction
+
+function! s:takeSourceCallback(data, t, ...) abort
+    if a:t == 0
+        let a:data['sourceTalkback'] = a:1
+        call a:data['sink'](0, a:data['talkback'])
+    elseif a:t == 1
+        if a:data['taken'] < a:data['max']
+            let a:data['taken'] = a:data['taken'] + 1
+            call a:data['sink'](a:t, a:1)
+            if a:data['taken'] == a:data['max'] && !a:data['end']
+                let a:data['end'] = 1
+                call a:data['sink'](2)
+                call a:data['sourceTalkback'](2)
+            endif
+        endif
+    else
+        call a:data['sink'](a:t, a:1)
+    endif
+endfunction
+" }}}
+
 let s:i = 0
 function! s:next(cb) abort
-    let s:i = s:i + 1
     echom s:i
+    let s:i = s:i + 1
 endfunction
 
 function! callbag#demo() abort
     let l:res = callbag#pipe(
         \ callbag#interval(1000),
+        \ callbag#take(3),
         \ callbag#forEach(function('s:next')),
         \ )
     return l:res
