@@ -2,6 +2,8 @@
 
 Lightweight observables and iterables for VimScript based on [Callbag Spec](https://github.com/callbag/callbag)
 
+callbag.vim explicilty doesn't use lambadas internally in order to be compatibile with older vim without lambda support.
+
 ## Example
 
 ```viml
