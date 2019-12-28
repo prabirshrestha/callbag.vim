@@ -14,8 +14,9 @@ endfunction
 function! rx#callbag#demo() abort
     call rx#callbag#pipe(
         \ rx#callbag#interval(1000),
-        \ rx#callbag#take(3),
+        \ rx#callbag#take(10),
         \ rx#callbag#map({x-> x + 1}),
+        \ rx#callbag#filter({x-> x % 2 == 0}),
         \ rx#callbag#map({x-> x * 1000}),
         \ rx#callbag#forEach({x -> s:log(x) }),
         \ )

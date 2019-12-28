@@ -131,7 +131,40 @@ function! s:mapFSourceCallback(data, t, ...) abort
 endfunction
 " }}}
 
-""" fromEvent() {{{
+" filter() {{{
+function! rx#callbag#filter(condition) abort
+    let l:data = { 'condition': a:condition }
+    return function('s:filterCondition', [l:data])
+endfunction
+
+function! s:filterCondition(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:filterConditionSource', [a:data])
+endfunction
+
+function! s:filterConditionSource(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    call a:data['source'](0, function('s:filterSourceCallback', [a:data]))
+endfunction
+
+function! s:filterSourceCallback(data, t, ...) abort
+    if a:t == 0
+        let a:data['talkback'] = a:1
+        call a:data['sink'](a:t, a:1)
+    elseif a:t == 1
+        if a:data['condition'](a:1)
+            call a:data['sink'](a:t, a:1)
+        else
+            call a:data['talkback'](1)
+        endif
+    else
+        call a:data['sink'](a:t, a:1)
+    endif
+endfunction
+" }}}
+
+" fromEvent() {{{
 let s:event_prefix_index = 0
 function! rx#callbag#fromEvent(events, ...) abort
     let l:data = { 'events': a:events }
