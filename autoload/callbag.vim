@@ -1,3 +1,7 @@
+function callbag#undefined() abort
+    return '__callback_undefined'
+endfunction
+
 " pipe() {{{
 function! callbag#pipe(...) abort
     let l:Res = a:1
@@ -20,10 +24,10 @@ function! s:forEachOperation(data, source) abort
     return a:source(0, function('s:forEachOperationSource', [a:data]))
 endfunction
 
-function! s:forEachOperationSource(data, t, ...) abort
-    if a:t == 0 | let a:data['talkback'] = a:1 | endif
-    if a:t == 1 | call a:data['operation'](a:1) | endif
-    if (a:t == 1 || a:t == 0) | call a:data['talkback'](1) | endif
+function! s:forEachOperationSource(data, t, d) abort
+    if a:t == 0 | let a:data['talkback'] = a:d | endif
+    if a:t == 1 | call a:data['operation'](a:d) | endif
+    if (a:t == 1 || a:t == 0) | call a:data['talkback'](1, callbag#undefined()) | endif
 endfunction
 " }}}
 
@@ -47,7 +51,7 @@ function! s:interval_callback(data, ...) abort
     call a:data['sink'](1, l:i)
 endfunction
 
-function! s:interval_sink_callback(data, t) abort
+function! s:interval_sink_callback(data, t, ...) abort
     if a:t == 2 | call timer_stop(a:data['timer']) | endif
 endfunction
 " }}}
@@ -72,35 +76,31 @@ function! s:takeMaxSource(data, start, sink) abort
     call a:data['source'](0, function('s:takeSourceCallback', [a:data]))
 endfunction
 
-function! s:takeTalkback(data, t, ...) abort
+function! s:takeTalkback(data, t, d) abort
     if a:t == 2
         let a:data['end'] = true
-        call a:data['sourceTalkback'](a:t, a:1)
+        call a:data['sourceTalkback'](a:t, a:d)
     elseif a:data['taken'] < a:data['max']
-        if a:0 > 0
-            call a:data['sourceTalkback'](a:t, a:1)
-        else
-            call a:data['sourceTalkback'](a:t)
-        endif
+        call a:data['sourceTalkback'](a:t, a:d)
     endif
 endfunction
 
-function! s:takeSourceCallback(data, t, ...) abort
+function! s:takeSourceCallback(data, t, d) abort
     if a:t == 0
-        let a:data['sourceTalkback'] = a:1
+        let a:data['sourceTalkback'] = a:d
         call a:data['sink'](0, a:data['talkback'])
     elseif a:t == 1
         if a:data['taken'] < a:data['max']
             let a:data['taken'] = a:data['taken'] + 1
-            call a:data['sink'](a:t, a:1)
+            call a:data['sink'](a:t, a:d)
             if a:data['taken'] == a:data['max'] && !a:data['end']
                 let a:data['end'] = 1
-                call a:data['sink'](2)
-                call a:data['sourceTalkback'](2)
+                call a:data['sink'](2, callbag#undefined())
+                call a:data['sourceTalkback'](2, callbag#undefined())
             endif
         endif
     else
-        call a:data['sink'](a:t, a:1)
+        call a:data['sink'](a:t, a:d)
     endif
 endfunction
 " }}}
@@ -122,12 +122,8 @@ function! s:mapFSource(data, start, sink) abort
     call a:data['source'](0, function('s:mapFSourceCallback', [a:data]))
 endfunction
 
-function! s:mapFSourceCallback(data, t, ...) abort
-    if a:0 > 0
-        call a:data['sink'](a:t, a:t == 1 ? a:data['f'](a:1) : a:1)
-    else
-        call a:data['sink'](a:t, a:t == 1 ? a:data['f'](0) : 0)
-    endif
+function! s:mapFSourceCallback(data, t, d) abort
+    call a:data['sink'](a:t, a:t == 1 ? a:data['f'](a:d) : a:d)
 endfunction
 " }}}
 
@@ -148,18 +144,18 @@ function! s:filterConditionSource(data, start, sink) abort
     call a:data['source'](0, function('s:filterSourceCallback', [a:data]))
 endfunction
 
-function! s:filterSourceCallback(data, t, ...) abort
+function! s:filterSourceCallback(data, t, d) abort
     if a:t == 0
-        let a:data['talkback'] = a:1
-        call a:data['sink'](a:t, a:1)
+        let a:data['talkback'] = a:d
+        call a:data['sink'](a:t, a:d)
     elseif a:t == 1
-        if a:data['condition'](a:1)
-            call a:data['sink'](a:t, a:1)
+        if a:data['condition'](a:d)
+            call a:data['sink'](a:t, a:d)
         else
-            call a:data['talkback'](1)
+            call a:data['talkback'](1, callbag#undefined())
         endif
     else
-        call a:data['sink'](a:t, a:1)
+        call a:data['sink'](a:t, a:d)
     endif
 endfunction
 " }}}
@@ -211,7 +207,7 @@ function! s:fromEventHandler(data) abort
     call a:data['sink'](1, {})
 endfunction
 
-function! s:fromEventNameSinkHandler(data, t) abort
+function! s:fromEventNameSinkHandler(data, t, ...) abort
     if a:t != 2 | return | endif
     let a:data['disposed'] = 1
     execute 'augroup ' a:data['augroup']
@@ -245,12 +241,12 @@ function! s:debounceTimeDurationSource(data, start, sink) abort
     call a:data['source'](0, function('s:debounceTimeSourceCallback', [a:data]))
 endfunction
 
-function! s:debounceTimeSourceCallback(data, t, ...) abort
+function! s:debounceTimeSourceCallback(data, t, d) abort
     if has_key(a:data, 'timer') | call timer_stop(a:data['timer']) | endif
     if a:t == 1
-        let a:data['timer'] = timer_start(a:data['duration'], function('s:debounceTimeTimerCallback', [a:data, a:1]))
+        let a:data['timer'] = timer_start(a:data['duration'], function('s:debounceTimeTimerCallback', [a:data, a:d]))
     else
-        call a:data['sink'](a:t, a:1)
+        call a:data['sink'](a:t, a:d)
     endif
 endfunction
 

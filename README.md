@@ -1,8 +1,30 @@
 # callbag.vim
 
-Lightweight observables and iterables for VimScript based on [Callbag Spec](https://github.com/callbag/callbag)
+Lightweight observables and iterables for VimScript based on [Callbag Spec](https://github.com/callbag/callbag).
 
-callbag.vim explicilty doesn't use lambadas internally in order to be compatibile with older vim without lambda support.
+## Operators
+
+| Implemented   | Operators                                              |
+|---------------|--------------------------------------------------------|
+| Yes           | debounceTime                                           |
+| Yes           | filter                                                 |
+| Yes           | forEach                                                |
+| Yes           | fromEvent                                              |
+| Yes           | interval                                               |
+| Yes           | map                                                    |
+| Yes           | pipe                                                   |
+| Yes           | take                                                   |
+
+** Note **
+
+*In order to support older version of vim without lambdas, callbag.vim explicitly doesn't use lambdas in the source code.*
+
+## Difference with callbag spec
+
+While the original callbag spec requires payload to be optional - `(type: number, payload?: any) => void`,
+callbag.vim requires payload to be required. This is primarily due to limition on how vimscript functions works.
+Having optional parameter and using `...` and `a:0` to read the extra args and then use `a:1` makes the code complicated.
+You can use `callbag#undefined()` method to pass undefined.
 
 ## Example
 
@@ -33,19 +55,6 @@ function! callbag#demo() abort
         \ )
 endfunction
 ```
-
-## Operators
-
-| Implemented   | Operators                                              |
-|---------------|--------------------------------------------------------|
-| Yes           | debounceTime                                           |
-| Yes           | filter                                                 |
-| Yes           | forEach                                                |
-| Yes           | fromEvent                                              |
-| Yes           | interval                                               |
-| Yes           | map                                                    |
-| Yes           | pipe                                                   |
-| Yes           | take                                                   |
 
 ## License
 
