@@ -15,7 +15,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | pipe                                                   |
 | Yes           | take                                                   |
 
-** Note **
+**Note**
 
 *In order to support older version of vim without lambdas, callbag.vim explicitly doesn't use lambdas in the source code.*
 
