@@ -14,6 +14,29 @@ function! callbag#pipe(...) abort
 endfunction
 " }}}
 
+" {{{
+function! callbag#create() abort
+    let l:data = {}
+    return function('s:create', l:data)
+endfunction
+
+function! s:create(data, start, ...) abort
+    if a:start != 0 | return | endif
+    let a:data['disposed'] = 0
+
+    call a:1(0, function('s:createSinkCallback', [a:data]))
+
+    if a:data['disposed'] | return | endif
+
+    call a:1(2, callbag#undefined())
+endfunction
+
+function! s:createSinkCallback(data, t, d) abort
+    if a:t != 2 | return | endif
+    let a:data['disposed'] = 1
+endfunction
+" }}}
+
 " forEach() {{{
 function! callbag#forEach(operation) abort
     let l:data = { 'operation': a:operation }

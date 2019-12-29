@@ -2,6 +2,12 @@
 
 Lightweight observables and iterables for VimScript based on [Callbag Spec](https://github.com/callbag/callbag).
 
+## Source Factories
+
+| Implemented   | Operators                                              |
+|---------------|--------------------------------------------------------|
+| Yes           | create                                                 |
+
 ## Operators
 
 | Implemented   | Operators                                              |
@@ -14,6 +20,12 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | map                                                    |
 | Yes           | pipe                                                   |
 | Yes           | take                                                   |
+
+## Utils
+
+| Implemented   | Operators                                              |
+|---------------|--------------------------------------------------------|
+| Yes           | pipe                                                   |
 
 **Note**
 
