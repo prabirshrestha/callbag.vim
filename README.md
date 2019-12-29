@@ -7,6 +7,8 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Implemented   | Operators                                              |
 |---------------|--------------------------------------------------------|
 | Yes           | create                                                 |
+| Yes           | fromEvent                                              |
+| Yes           | interval                                               |
 
 ## Operators
 
@@ -15,10 +17,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | debounceTime                                           |
 | Yes           | filter                                                 |
 | Yes           | forEach                                                |
-| Yes           | fromEvent                                              |
-| Yes           | interval                                               |
 | Yes           | map                                                    |
-| Yes           | pipe                                                   |
 | Yes           | take                                                   |
 
 ## Utils
@@ -26,6 +25,8 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Implemented   | Operators                                              |
 |---------------|--------------------------------------------------------|
 | Yes           | pipe                                                   |
+
+`pipe()`'s first argument should be a source factory.
 
 **Note**
 
