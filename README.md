@@ -4,7 +4,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 ## Source Factories
 
-| Implemented   | Operators                                              |
+| Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
 | Yes           | empty                                                  |
 | Yes           | fromEvent                                              |
@@ -13,14 +13,14 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 ## Sink Factories
 
-| Implemented   | Operators                                              |
+| Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
 | Yes           | forEach                                                |
 | Yes           | subscribe                                              |
 
 ## Operators
 
-| Implemented   | Operators                                              |
+| Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
 | Yes           | debounceTime                                           |
 | Yes           | filter                                                 |
@@ -29,7 +29,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 ## Utils
 
-| Implemented   | Operators                                              |
+| Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
 | Yes           | pipe                                                   |
 
