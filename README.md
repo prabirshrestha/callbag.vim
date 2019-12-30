@@ -11,6 +11,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | fromEvent                                              |
 | Yes           | interval                                               |
 | Yes           | never                                                  |
+| Yes           | of                                                     |
 | Yes           | throwError                                             |
 
 ## Sink Factories
@@ -102,6 +103,13 @@ function! callbag#demo() abort
         \   'next': {x->s:log('next will never be called')},
         \   'error': {e->s:log('error called with ' . e)},
         \   'complete': {->s:log('complete will never be called')},
+        \ }),
+        \ )
+    call callbag#pipe(
+        \ callbag#of(1, 2, 3, 4),
+        \ callbag#subscribe({
+        \   'next': {x->s:log('next value is ' . x)},
+        \   'complete': {->s:log('completed of')},
         \ }),
         \ )
 endfunction

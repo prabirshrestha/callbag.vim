@@ -397,4 +397,32 @@ function! s:throwErrorSinkCallback(data, t, ...) abort
 endfunction
 " }}}
 
+" of() {{{
+function! callbag#of(...) abort
+    let l:data = { 'values': a:000 }
+    return function('s:ofFactory', [l:data])
+endfunction
+
+function! s:ofFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['disposed'] = 0
+    call a:sink(0, function('s:ofSinkCallback', [a:data]))
+    let l:i = 0
+    let l:n = len(a:data['values'])
+    while l:i < l:n
+        if a:data['disposed'] | break | endif
+        call a:sink(1, a:data['values'][l:i])
+        let l:i += 1
+    endwhile
+    if a:data['disposed'] | return | endif
+    call a:sink(2, callbag#undefined())
+endfunction
+
+
+function! s:ofSinkCallback(data, t, ...) abort
+    if a:t != 2 | return | endif
+    let a:data['disposed'] = 1
+endfunction
+" }}}
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
