@@ -11,6 +11,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | fromEvent                                              |
 | Yes           | interval                                               |
 | Yes           | never                                                  |
+| Yes           | throwError                                             |
 
 ## Sink Factories
 
@@ -76,24 +77,32 @@ function! callbag#demo() abort
         \ callbag#empty(),
         \ callbag#subscribe({
         \   'next': {x->s:log('next will never be called')},
-        \   'error': {x->s:log('error will never be called')},
+        \   'error': {e->s:log('error will never be called')},
         \   'complete': {->s:log('complete will be called')},
         \ }),
         \ )
     call callbag#pipe(
         \ callbag#never(),
-        \ callbag#subscribe({x->s:log('next will not be called')}, {x->s:log('error will not be called')}, {->s:log('complete will not be called')}),
+        \ callbag#subscribe({x->s:log('next will not be called')}, {e->s:log('error will not be called')}, {->s:log('complete will not be called')}),
      call callbag#pipe(
-        \ callbag#create({next,error, done->next('next')}),
+        \ callbag#create({next,error,done->next('next')}),
         \ callbag#subscribe({
         \   'next': {x->s:log('next')},
-        \   'error': {x->s:log('error')},
+        \   'error': {e->s:log('error')},
         \   'complete': {->s:log('complete')},
         \ }),
-        \ )       \ )
+        \ )
     call callbag#pipe(
-        \ callbag#create({next,error, done->next('val')}),
+        \ callbag#create({next,error,done->next('val')}),
         \ callbag#forEach({x->s:log('next value is ' . x)}),
+        \ )
+    call callbag#pipe(
+        \ callbag#throwError('my dummy error'),
+        \ callbag#subscribe({
+        \   'next': {x->s:log('next will never be called')},
+        \   'error': {e->s:log('error called with ' . e)},
+        \   'complete': {->s:log('complete will never be called')},
+        \ }),
         \ )
 endfunction
 ```

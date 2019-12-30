@@ -377,4 +377,24 @@ function! s:subscribeDispose(data, ...) abort
 endfunction
 " }}}
 
+" throwError {{{
+function! callbag#throwError(error) abort
+    let l:data = { 'error': a:error }
+    return function('s:throwErrorFactory', [l:data])
+endfunction
+
+function! s:throwErrorFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['disposed'] = 0
+    call a:sink(0, function('s:throwErrorSinkCallback', [a:data]))
+    if a:data['disposed'] | return | endif
+    call a:sink(2, a:data['error'])
+endfunction
+
+function! s:throwErrorSinkCallback(data, t, ...) abort
+    if a:t != 2 | return | endif
+    let a:data['disposed'] = 1
+endfunction
+" }}}
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
