@@ -9,6 +9,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | empty                                                  |
 | Yes           | fromEvent                                              |
 | Yes           | interval                                               |
+| Yes           | never                                                  |
 
 ## Operators
 
@@ -65,6 +66,10 @@ function! callbag#demo() abort
     call callbag#pipe(
         \ callbag#fromEvent('InsertLeave'),
         \ callbag#forEach({x -> s:log('InsertLeave') }),
+        \ )
+    call callbag#pipe(
+        \ callbag#never(),
+        \ callbag#forEach({ x-> s:log('this will never be called') })
         \ )
 endfunction
 ```

@@ -1,5 +1,8 @@
-function callbag#undefined() abort
+function! callbag#undefined() abort
     return '__callback_undefined__'
+endfunction
+
+function! s:noop(...) abort
 endfunction
 
 " pipe() {{{
@@ -34,6 +37,17 @@ endfunction
 function! s:emptySinkCallback(data, t, d) abort
     if a:t != 2 | return | endif
     let a:data['disposed'] = 1
+endfunction
+" }}}
+
+" never() {{{
+function! callbag#never() abort
+    return function('s:never')
+endfunction
+
+function! s:never(start, ...) abort
+    if a:start != 0 | return | endif
+    call a:1(0, function('s:noop'))
 endfunction
 " }}}
 
