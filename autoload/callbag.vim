@@ -292,4 +292,37 @@ function! s:debounceTimeTimerCallback(data, d, ...) abort
 endfunction
 " }}}
 
+" subscribe() {{{
+function! callbag#subscribe(...) abort
+    let l:data = {}
+    " if type(a:1) == type({}) " a:1 { next, error, complete }
+        if has_key(a:1, 'next') | let l:data['next'] = a:1['next'] | endif
+        if has_key(a:1, 'error') | let l:data['error'] = a:1['error'] | endif
+        if has_key(a:1, 'complete') | let l:data['complete'] = a:1['complete'] | endif
+    " else " a:1 = next, a:2 = error, a:3 = complete
+    "     if a:0 >= 1 | let l:data['next'] = a:1 | endif
+    "     if a:0 >= 2 | let l:data['error'] = a:2 | endif
+    "     if a:0 >= 3 | let l:data['complete'] = a:3 | endif
+    " endif
+    return function('s:subscribeListener', [l:data])
+endfunction
+
+function! s:subscribeListener(data, source) abort
+    call a:source(0, function('s:subscribeSourceCallback', [a:data]))
+    return function('s:subscribeDispose', [a:data])
+endfunction
+
+function! s:subscribeSourceCallback(data, t, d) abort
+    if a:t == 0 | let a:data['talkback'] = a:d | endif
+    if a:t == 1 && has_key(a:data, 'next') && !empty(a:data['next']) | call a:data['next'](a:d) | endif
+    if a:t == 1 || a:t == 0 | call a:data['talkback'](1, callbag#undefined()) | endif
+    if a:t == 2 && a:d == callbag#undefined() && has_key(a:data, 'complete') && !empty(a:data['complete']) | call a:data['complete']() | endif
+    if a:t == 2 && a:d != callbag#undefined() && has_key(a:data, 'error') && !empty(a:data['complete']) | call a:data['error']() | endif
+endfunction
+
+function! s:subscribeDispose(data, ...) abort
+    if has_key(a:data, 'talkback') | call a:data['talkback'](2, callbag#undefined()) | endif
+endfunction
+" }}}
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:

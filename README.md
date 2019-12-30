@@ -11,13 +11,19 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | interval                                               |
 | Yes           | never                                                  |
 
+## Sink Factories
+
+| Implemented   | Operators                                              |
+|---------------|--------------------------------------------------------|
+| Yes           | forEach                                                |
+| Yes           | subscribe                                              |
+
 ## Operators
 
 | Implemented   | Operators                                              |
 |---------------|--------------------------------------------------------|
 | Yes           | debounceTime                                           |
 | Yes           | filter                                                 |
-| Yes           | forEach                                                |
 | Yes           | map                                                    |
 | Yes           | take                                                   |
 
