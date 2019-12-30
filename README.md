@@ -29,6 +29,21 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | filter                                                 |
 | Yes           | map                                                    |
 | Yes           | take                                                   |
+| No            | concat                                                 |
+| No            | concatWith                                             |
+| No            | delay                                                  |
+| No            | distinctUntilChanged                                   |
+| No            | group                                                  |
+| No            | merge                                                  |
+| No            | mergeWith                                              |
+| No            | rescue                                                 |
+| No            | retry                                                  |
+| No            | scan                                                   |
+| No            | skip                                                   |
+| No            | takeUntil                                              |
+| No            | takeWhile                                              |
+| No            | throttle                                               |
+| No            | timeout                                                |
 
 ## Utils
 
