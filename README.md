@@ -74,8 +74,16 @@ function! callbag#demo() abort
         \ callbag#forEach({x -> s:log('InsertLeave') }),
         \ )
     call callbag#pipe(
+        \ callbag#empty(),
+        \ callbag#subscribe({
+        \   'next': {x->s:log('next will never be called')},
+        \   'error': {x->s:log('error will never be called')},
+        \   'complete': {->s:log('complete will be called')},
+        \ }),
+        \ )
+    call callbag#pipe(
         \ callbag#never(),
-        \ callbag#forEach({ x-> s:log('this will never be called') })
+        \ callbag#subscribe({x->s:log('next will not be called')}, {x->s:log('error will not be called')}, {->s:log('complete will not be called')}),
         \ )
 endfunction
 ```

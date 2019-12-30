@@ -17,26 +17,27 @@ function! callbag#pipe(...) abort
 endfunction
 " }}}
 
-" empty {{{
+" empty() {{{
 function! callbag#empty() abort
     let l:data = {}
-    return function('s:empty', l:data)
+    return function('s:emptyStart', [l:data])
 endfunction
 
-function! s:empty(data, start, ...) abort
+function! s:emptyStart(data, start, sink) abort
     if a:start != 0 | return | endif
     let a:data['disposed'] = 0
-
-    call a:1(0, function('s:emptySinkCallback', [a:data]))
-
+    call a:sink(0, function('s:emptySinkCallback', [a:data]))
     if a:data['disposed'] | return | endif
-
-    call a:1(2, callbag#undefined())
+    call a:sink(2, callbag#undefined())
 endfunction
 
-function! s:emptySinkCallback(data, t, d) abort
+function! s:emptySinkCallback(data, t, ...) abort
     if a:t != 2 | return | endif
     let a:data['disposed'] = 1
+endfunction
+
+function! s:empty_sink_callback(data, t, ...) abort
+    if a:t == 2 | call timer_stop(a:data['timer']) | endif
 endfunction
 " }}}
 
@@ -45,9 +46,9 @@ function! callbag#never() abort
     return function('s:never')
 endfunction
 
-function! s:never(start, ...) abort
+function! s:never(start, sink) abort
     if a:start != 0 | return | endif
-    call a:1(0, function('s:noop'))
+    call a:sink(0, function('s:noop'))
 endfunction
 " }}}
 
@@ -295,15 +296,15 @@ endfunction
 " subscribe() {{{
 function! callbag#subscribe(...) abort
     let l:data = {}
-    " if type(a:1) == type({}) " a:1 { next, error, complete }
+    if type(a:1) == type({}) " a:1 { next, error, complete }
         if has_key(a:1, 'next') | let l:data['next'] = a:1['next'] | endif
         if has_key(a:1, 'error') | let l:data['error'] = a:1['error'] | endif
         if has_key(a:1, 'complete') | let l:data['complete'] = a:1['complete'] | endif
-    " else " a:1 = next, a:2 = error, a:3 = complete
-    "     if a:0 >= 1 | let l:data['next'] = a:1 | endif
-    "     if a:0 >= 2 | let l:data['error'] = a:2 | endif
-    "     if a:0 >= 3 | let l:data['complete'] = a:3 | endif
-    " endif
+    else " a:1 = next, a:2 = error, a:3 = complete
+        if a:0 >= 1 | let l:data['next'] = a:1 | endif
+        if a:0 >= 2 | let l:data['error'] = a:2 | endif
+        if a:0 >= 3 | let l:data['complete'] = a:3 | endif
+    endif
     return function('s:subscribeListener', [l:data])
 endfunction
 
