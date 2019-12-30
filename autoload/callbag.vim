@@ -17,6 +17,57 @@ function! callbag#pipe(...) abort
 endfunction
 " }}}
 
+" create() {{{
+function! callbag#create(...) abort
+    let l:data = {}
+    if a:0 > 0
+        let l:data['prod'] = a:1
+    endif
+    return function('s:createProd', [l:data])
+endfunction
+
+function! s:createProd(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    if !has_key(a:data, 'prod') || type(a:data['prod']) != type(function('s:noop'))
+        call a:sink(0, function('s:noop'))
+        call a:sink(2, callbag#undefined())
+        return
+    endif
+    let a:data['end'] = 0
+    call a:sink(0, function('s:createSinkCallback', [a:data]))
+    if a:data['end'] | return | endif
+    let a:data['clean'] = a:data['prod'](function('s:createNext', [a:data]), function('s:createError', [a:data]), function('s:createComplete', [a:data]))
+endfunction
+
+function! s:createSinkCallback(data, t, ...) abort
+    if !a:data['end']
+        let a:data['end'] = (a:t == 2)
+        if a:data['end'] && has_key(a:data, 'clean') && type(a:data['clean']) == type(function('s:noop'))
+            call a:data['clean']()
+        endif
+    endif
+endfunction
+
+function! s:createNext(data, d) abort
+    if !a:data['end'] | call a:data['sink'](1, a:d) | endif
+endfunction
+
+function! s:createError(data, e) abort
+    if !a:data['end'] && e != callbag#undefined()
+        let a:data['end'] = 1
+        call a:data['sink'](2, a:e)
+    endif
+endfunction
+
+function! s:createComplete(data) abort
+    if !a:data['end']
+        let a:data['end'] = 1
+        call a:data['sink'](2, callbag#undefined())
+    endif
+endfunction
+" }}}
+
 " empty() {{{
 function! callbag#empty() abort
     let l:data = {}
