@@ -317,7 +317,7 @@ function! s:subscribeSourceCallback(data, t, d) abort
     if a:t == 1 && has_key(a:data, 'next') && !empty(a:data['next']) | call a:data['next'](a:d) | endif
     if a:t == 1 || a:t == 0 | call a:data['talkback'](1, callbag#undefined()) | endif
     if a:t == 2 && a:d == callbag#undefined() && has_key(a:data, 'complete') && !empty(a:data['complete']) | call a:data['complete']() | endif
-    if a:t == 2 && a:d != callbag#undefined() && has_key(a:data, 'error') && !empty(a:data['complete']) | call a:data['error']() | endif
+    if a:t == 2 && a:d != callbag#undefined() && has_key(a:data, 'error') && !empty(a:data['complete']) | call a:data['error'](a:d) | endif
 endfunction
 
 function! s:subscribeDispose(data, ...) abort
