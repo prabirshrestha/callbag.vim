@@ -35,9 +35,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 `pipe()`'s first argument should be a source factory.
 
-**Note**
-
-*In order to support older version of vim without lambdas, callbag.vim explicitly doesn't use lambdas in the source code.*
+***Note** In order to support older version of vim without lambdas, callbag.vim explicitly doesn't use lambdas in the source code.*
 
 ## Difference with callbag spec
 
