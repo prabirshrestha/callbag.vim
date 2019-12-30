@@ -1,5 +1,5 @@
 function callbag#undefined() abort
-    return '__callback_undefined'
+    return '__callback_undefined__'
 endfunction
 
 " pipe() {{{
