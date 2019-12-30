@@ -6,7 +6,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 | Implemented   | Operators                                              |
 |---------------|--------------------------------------------------------|
-| Yes           | create                                                 |
+| Yes           | empty                                                  |
 | Yes           | fromEvent                                              |
 | Yes           | interval                                               |
 

@@ -14,24 +14,24 @@ function! callbag#pipe(...) abort
 endfunction
 " }}}
 
-" {{{
-function! callbag#create() abort
+" empty {{{
+function! callbag#empty() abort
     let l:data = {}
-    return function('s:create', l:data)
+    return function('s:empty', l:data)
 endfunction
 
-function! s:create(data, start, ...) abort
+function! s:empty(data, start, ...) abort
     if a:start != 0 | return | endif
     let a:data['disposed'] = 0
 
-    call a:1(0, function('s:createSinkCallback', [a:data]))
+    call a:1(0, function('s:emptySinkCallback', [a:data]))
 
     if a:data['disposed'] | return | endif
 
     call a:1(2, callbag#undefined())
 endfunction
 
-function! s:createSinkCallback(data, t, d) abort
+function! s:emptySinkCallback(data, t, d) abort
     if a:t != 2 | return | endif
     let a:data['disposed'] = 1
 endfunction
