@@ -28,13 +28,13 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | debounceTime                                           |
 | Yes           | filter                                                 |
 | Yes           | map                                                    |
+| Yes           | merge                                                  |
 | Yes           | take                                                   |
 | No            | concat                                                 |
 | No            | concatWith                                             |
 | No            | delay                                                  |
 | No            | distinctUntilChanged                                   |
 | No            | group                                                  |
-| No            | merge                                                  |
 | No            | mergeWith                                              |
 | No            | rescue                                                 |
 | No            | retry                                                  |
@@ -126,6 +126,13 @@ function! callbag#demo() abort
         \   'next': {x->s:log('next value is ' . x)},
         \   'complete': {->s:log('completed of')},
         \ }),
+        \ )
+     call callbag#pipe(
+        \ callbag#merge(
+        \   callbag#fromEvent('InsertEnter'),
+        \   callbag#fromEvent('InsertLeave'),
+        \ ),
+        \ callbag#forEach({x->s:log('InsertEnter or InsertLeave')}),
         \ )
 endfunction
 ```
