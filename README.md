@@ -28,6 +28,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | debounceTime                                           |
 | Yes           | delay                                                  |
 | Yes           | filter                                                 |
+| Yes           | flatten                                                |
 | Yes           | group                                                  |
 | Yes           | map                                                    |
 | Yes           | merge                                                  |
@@ -154,6 +155,12 @@ function! callbag#demo() abort
      call callbag#pipe(
         \ callbag#of(1,2,3,4,5,6,7,8,9),
         \ callbag#group(3),
+        \ callbag#forEach({x->s:log(x)}),
+        \ )
+     call callbag#pipe(
+        \ callbag#fromEvent('InsertEnter'),
+        \ callbag#map({x->callbag#interval(1000)}),
+        \ function('callbag#flatten'),
         \ callbag#forEach({x->s:log(x)}),
         \ )
 endfunction

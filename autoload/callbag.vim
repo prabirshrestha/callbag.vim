@@ -499,7 +499,7 @@ function! s:mergeSourceCallback(data, i, t, d) abort
         let l:j = 0
         while l:j < a:data['n']
             if l:j != l:i && l:j < len(a:data['sourceTalkbacks']) && a:data['sourceTalkbacks'][l:j] != 0
-                call a:data['sourceTalkbacks'][l:j](2, callback#undefined())
+                call a:data['sourceTalkbacks'][l:j](2, callbag#undefined())
             endif
             let l:j += 1
         endwhile
@@ -584,7 +584,7 @@ function! s:takeUntilSinkCallback(data, t, d) abort
 endfunction
 " }}}
 
-" gropu() {{{
+" group() {{{
 function! callbag#group(n) abort
     let l:data = { 'n': a:n }
     return function('s:groupN', [l:data])
@@ -615,6 +615,76 @@ function! s:groupSourceCallback(data, t, d) abort
             call a:data['sink'](1, remove(a:data['chunk'], 0, len(a:data['chunk']) - 1))
         else
             call a:data['sink'](a:t, a:d)
+        endif
+    endif
+endfunction
+" }}}
+
+" flatten() {{{
+function! callbag#flatten(source) abort
+    let l:data = { 'source': a:source }
+    return function('s:flattenFactory', [l:data])
+endfunction
+
+function! s:flattenFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['outerEnded'] = 0
+    let a:data['outerTalkback'] = 0
+    let a:data['innerTalkback'] = 0
+    let a:data['talkback'] = function('s:flattenTalkbackCallback', [a:data])
+    call a:data['source'](0, function('s:flattenSourceCallback', [a:data]))
+endfunction
+
+function! s:flattenTalkbackCallback(data, t, d) abort
+    if a:t == 1
+        if a:data['innerTalkback'] != 0
+            call a:data['innerTalkback'](1, a:d)
+        else
+            call a:data['outerTalkback'](1, a:d)
+        endif
+    endif
+    if a:t == 2
+        if a:data['innertTalkback'] != 0 | call a:data['innerTalkback'](2, callbag#undefined()) | endif
+        call a:data['outerTalkback'](2, callbag#undefined())
+    endif
+endfunction
+
+function! s:flattenSourceCallback(data, t, d) abort
+    if a:t == 0
+        let a:data['outerTalkback'] = a:d
+        call a:data['sink'](0, a:data['talkback'])
+    elseif a:t == 1
+        let l:InnerSource = a:d
+        if a:data['innerTalkback'] != 0 | call a:data['innerTalkback'](2, callbag#undefined()) | endif
+        call l:InnerSource(0, function('s:flattenInnerSourceCallback', [a:data]))
+    elseif a:t == 2 && a:d != callbag#undefined()
+        if a:data['innerTalkback'] != 0 | call a:data['innerTalkback'](2, callbag#undefined()) | endif
+        call a:data['outerTalkback'](1, a:d)
+    elseif a:t == 2
+        if a:data['innerTalkback'] == 0
+            call a:data['sink'](2, callbag#undefined())
+        else
+            let a:data['outerEnded'] = 1
+        endif
+    endif
+endfunction
+
+function! s:flattenInnerSourceCallback(data, t, d) abort
+    if a:t == 0
+        let a:data['innerTalkback'] = a:d
+        call a:data['innerTalkback'](1, callbag#undefined())
+    elseif a:t == 1
+        call a:data['sink'](1, a:d)
+    elseif a:t == 2 && a:d != callbag#undefined()
+        call a:data['outerTalkback'](2, callbag#undefined())
+        call a:data['sink'](2, a:d)
+    elseif a:t == 2
+        if a:data['outerEnded'] != 0
+            call a:data['sink'](2, callbag#undefined())
+        else
+            let a:data['innerTalkback'] = 0
+            call a:data['outerTalkback'](1, callbag#undefined())
         endif
     endif
 endfunction
