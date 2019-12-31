@@ -256,29 +256,28 @@ function! callbag#fromEvent(events, ...) abort
     if a:0 > 0
         let l:data['augroup'] = a:1
     else
-        let l:data['augroup'] = 'rx_callback_event_prefix_' + s:event_prefix_index
+        let l:data['augroup'] = '__callbag_fromEvent_prefix_' + s:event_prefix_index + '__'
         let s:event_prefix_index = s:event_prefix_index + 1
     endif
-    return function('s:fromEventName', [l:data])
+    return function('s:fromEventFactory', [l:data])
 endfunction
 
 let s:event_handler_index = 0
 let s:event_handlers_data = {}
-function! s:fromEventName(data, start, sink) abort
+function! s:fromEventFactory(data, start, sink) abort
     if a:start != 0 | return | endif
-    let a:data['disposed'] = 0
     let a:data['sink']  = a:sink
-    let a:data['handler'] = function('s:fromEventHandler', [a:data])
+    let a:data['disposed'] = 0
+    let a:data['handler'] = function('s:fromEventHandlerCallback', [a:data])
     let a:data['handler_index'] = s:event_handler_index
-    call a:sink(0, function('s:fromEventNameSinkHandler', [a:data]))
+    let s:event_handler_index = s:event_handler_index + 1
+    call a:sink(0, function('s:fromEventSinkHandler', [a:data]))
 
     if a:data['disposed'] | return | endif
-
     let s:event_handlers_data[a:data['handler_index']] = a:data
-    let s:event_handler_index = s:event_handler_index + 1
 
-    execute 'augroup ' a:data['augroup']
-        autocmd!
+    execute 'augroup ' . a:data['augroup']
+        execute 'autocmd!'
         let l:events = type(a:data['events']) == type('') ? [a:data['events']] : a:data['events']
         for l:event in l:events
             let l:exec =  'call s:notify_event_handler(' . a:data['handler_index'] . ')'
@@ -291,12 +290,12 @@ function! s:fromEventName(data, start, sink) abort
     execute 'augroup end'
 endfunction
 
-function! s:fromEventHandler(data) abort
+function! s:fromEventHandlerCallback(data) abort
     " send v:event if it exists
-    call a:data['sink'](1, {})
+    call a:data['sink'](1, callbag#undefined())
 endfunction
 
-function! s:fromEventNameSinkHandler(data, t, ...) abort
+function! s:fromEventSinkHandler(data, t, ...) abort
     if a:t != 2 | return | endif
     let a:data['disposed'] = 1
     execute 'augroup ' a:data['augroup']
@@ -366,10 +365,10 @@ endfunction
 
 function! s:subscribeSourceCallback(data, t, d) abort
     if a:t == 0 | let a:data['talkback'] = a:d | endif
-    if a:t == 1 && has_key(a:data, 'next') && !empty(a:data['next']) | call a:data['next'](a:d) | endif
+    if a:t == 1 && has_key(a:data, 'next') | call a:data['next'](a:d) | endif
     if a:t == 1 || a:t == 0 | call a:data['talkback'](1, callbag#undefined()) | endif
-    if a:t == 2 && a:d == callbag#undefined() && has_key(a:data, 'complete') && !empty(a:data['complete']) | call a:data['complete']() | endif
-    if a:t == 2 && a:d != callbag#undefined() && has_key(a:data, 'error') && !empty(a:data['complete']) | call a:data['error'](a:d) | endif
+    if a:t == 2 && a:d == callbag#undefined() && has_key(a:data, 'complete') | call a:data['complete']() | endif
+    if a:t == 2 && a:d != callbag#undefined() && has_key(a:data, 'error') | call a:data['error'](a:d) | endif
 endfunction
 
 function! s:subscribeDispose(data, ...) abort
@@ -483,5 +482,73 @@ function! s:mergeSourceCallback(data, i, t, d) abort
     endif
 endfunction
 " }}}
+
+function! callbag#takeUntil(notfier) abort
+    let l:data = { 'notifier': a:notfier }
+    return function('s:takeUntilNotifier', [l:data])
+endfunction
+
+function! s:takeUntilNotifier(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:takeUntilFactory', [a:data])
+endfunction
+
+let s:takeUntilUniqueToken = '__callback__take_until_unique_token__'
+
+function! s:takeUntilFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['inited'] = 1
+    let a:data['sourceTalkback'] = 0
+    let a:data['notiferTalkback'] = 0
+    let a:data['done'] = s:takeUntilUniqueToken
+    call a:data['source'](0, function('s:takeUntilSourceCallback', [a:data]))
+endfunction
+
+function! s:takeUntilSourceCallback(data, t, d) abort
+    if a:t == 0
+        let a:data['sourceTalkback'] = a:d
+        call a:data['notifier'](0, function('s:takeUntilNotifierCallback', [a:data]))
+        let a:data['inited'] = 1
+        call a:data['sink'](0, function('s:takeUntilSinkCallback', [a:data]))
+        if a:data['done'] != s:takeUntilUniqueToken | call a:data['sink'](2, a:data['done']) | endif
+        return
+    endif
+    if a:t == 2
+        call a:data['notifierTalkback'](2, callbag#undefined())
+    endif
+    if a:data['done'] == s:takeUntilUniqueToken
+        call a:data['sink'](a:t, a:d)
+    endif
+endfunction
+
+function! s:takeUntilNotifierCallback(data, t, d) abort
+    if a:t == 0
+        let a:data['notifierTalkback'] = a:d
+        call a:data['notifierTalkback'](1, callbag#undefined())
+        return
+    endif
+    if a:t == 1
+        let a:data['done'] = 0
+        call a:data['notifierTalkback'](2, callbag#undefined())
+        call a:data['sourceTalkback'](2, callbag#undefined())
+        if a:data['inited'] | call a:data['sink'](2, callbag#undefined()) | endif
+        return
+    endif
+    if a:t ==2
+        let a:data['notifierTalkback'] = 0
+        let a:data['done'] = a:d
+        if a:d != 0
+            call a:data['sourceTalkback'](2, callbag#undefined())
+            if a:data['inited'] | call a:data['sink'](a:t, a:d) | endif
+        endif
+    endif
+endfunction
+
+function! s:takeUntilSinkCallback(data, t, d) abort
+    if a:data['done'] != s:takeUntilUniqueToken | return | endif
+    if a:t == 2 && has_key(a:data, 'notifierTalkback') && a:data['notifierTalkback'] != 0 | call a:data['notifierTalkback'](2, callbag#undefined()) | endif
+    call a:data['sourceTalkback'](a:t, a:d)
+endfunction
 
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:

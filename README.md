@@ -30,6 +30,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | map                                                    |
 | Yes           | merge                                                  |
 | Yes           | take                                                   |
+| Yes           | takeUntil                                              |
 | No            | concat                                                 |
 | No            | concatWith                                             |
 | No            | delay                                                  |
@@ -40,7 +41,6 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | No            | retry                                                  |
 | No            | scan                                                   |
 | No            | skip                                                   |
-| No            | takeUntil                                              |
 | No            | takeWhile                                              |
 | No            | throttle                                               |
 | No            | timeout                                                |
@@ -133,6 +133,18 @@ function! callbag#demo() abort
         \   callbag#fromEvent('InsertLeave'),
         \ ),
         \ callbag#forEach({x->s:log('InsertEnter or InsertLeave')}),
+        \ )
+     call callbag#pipe(
+        \ callbag#fromEvent('TextChangedI', 'text_change_autocmd_group_name'),
+        \ callbag#takeUntil(
+        \   callbag#fromEvent('InsertLeave', 'insert_leave_autocmd_group_name'),
+        \ ),
+        \ callbag#debounceTime(250),
+        \ callbag#subscribe({
+        \   'next': {x->s:log('next')},
+        \   'error': {x->s:log('error')},
+        \   'complete': {->s:log('complete')},
+        \ }),
         \ )
 endfunction
 ```
