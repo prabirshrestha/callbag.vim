@@ -32,6 +32,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | group                                                  |
 | Yes           | map                                                    |
 | Yes           | merge                                                  |
+| Yes           | scan                                                   |
 | Yes           | take                                                   |
 | Yes           | takeUntil                                              |
 | No            | concat                                                 |
@@ -40,7 +41,6 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | No            | mergeWith                                              |
 | No            | rescue                                                 |
 | No            | retry                                                  |
-| No            | scan                                                   |
 | No            | skip                                                   |
 | No            | takeWhile                                              |
 | No            | throttle                                               |
@@ -161,6 +161,11 @@ function! callbag#demo() abort
         \ callbag#fromEvent('InsertEnter'),
         \ callbag#map({x->callbag#interval(1000)}),
         \ function('callbag#flatten'),
+        \ callbag#forEach({x->s:log(x)}),
+        \ )
+     call callbag#pipe(
+        \ callbag#of(1,2,3,4,5),
+        \ callbag#scan({prev, x-> prev + x}, 0),
         \ callbag#forEach({x->s:log(x)}),
         \ )
 endfunction

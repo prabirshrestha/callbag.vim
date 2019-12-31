@@ -690,4 +690,32 @@ function! s:flattenInnerSourceCallback(data, t, d) abort
 endfunction
 " }}}
 
+" scan() {{{
+function! callbag#scan(reducer, seed) abort
+    let l:data = { 'reducer': a:reducer, 'seed': a:seed }
+    return function('s:scanSource', [l:data])
+endfunction
+
+function! s:scanSource(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:scanFactory', [a:data])
+endfunction
+
+function! s:scanFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['acc'] = a:data['seed']
+    call a:data['source'](0, function('s:scanSourceCallback', [a:data]))
+endfunction
+
+function! s:scanSourceCallback(data, t, d) abort
+    if a:t == 1
+        let a:data['acc'] = a:data['reducer'](a:data['acc'], a:d)
+        call a:data['sink'](1, a:data['acc'])
+    else
+        call a:data['sink'](a:t, a:d)
+    endif
+endfunction
+" }}}
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
