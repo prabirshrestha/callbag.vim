@@ -584,4 +584,40 @@ function! s:takeUntilSinkCallback(data, t, d) abort
 endfunction
 " }}}
 
+" gropu() {{{
+function! callbag#group(n) abort
+    let l:data = { 'n': a:n }
+    return function('s:groupN', [l:data])
+endfunction
+
+function! s:groupN(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:groupFactory', [a:data])
+endfunction
+
+function! s:groupFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['chunk'] = []
+    call a:data['source'](0, function('s:groupSourceCallback', [a:data]))
+endfunction
+
+function! s:groupSourceCallback(data, t, d) abort
+    if a:t == 0 | let a:data['talkback'] = a:d | endif
+    if a:t == 1
+        call add(a:data['chunk'], a:d)
+        if len(a:data['chunk']) == a:data['n']
+            call a:data['sink'](a:t, remove(a:data['chunk'], 0, a:data['n'] - 1))
+        endif
+        call a:data['talkback'](1, callbag#undefined())
+    else
+        if a:t == 2 && len(a:data['chunk']) > 0
+            call a:data['sink'](1, remove(a:data['chunk'], 0, len(a:data['chunk']) - 1))
+        else
+            call a:data['sink'](a:t, a:d)
+        endif
+    endif
+endfunction
+" }}}
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
