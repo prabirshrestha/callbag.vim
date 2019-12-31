@@ -145,6 +145,37 @@ function! s:interval_sink_callback(data, t, ...) abort
 endfunction
 " }}}
 
+" delay() {{{
+function! callbag#delay(period) abort
+    let l:data = { 'period': a:period }
+    return function('s:delayPeriod', [l:data])
+endfunction
+
+function! s:delayPeriod(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:delayFactory', [a:data])
+endfunction
+
+function! s:delayFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    call a:data['source'](0, function('s:delaySourceCallback', [a:data]))
+endfunction
+
+function! s:delaySourceCallback(data, t, d) abort
+    if a:t != 1
+        call a:data['sink'](a:t, a:d)
+        return
+    endif
+    let a:data['d'] = a:d
+    call timer_start(a:data['period'], function('s:delayTimerCallback', [a:data]))
+endfunction
+
+function! s:delayTimerCallback(data, ...) abort
+    call a:data['sink'](1, a:data['d'])
+endfunction
+" }}}
+
 " take() {{{
 function! callbag#take(max) abort
     let l:data = { 'max': a:max }
@@ -376,7 +407,7 @@ function! s:subscribeDispose(data, ...) abort
 endfunction
 " }}}
 
-" throwError {{{
+" throwError() {{{
 function! callbag#throwError(error) abort
     let l:data = { 'error': a:error }
     return function('s:throwErrorFactory', [l:data])
@@ -483,6 +514,7 @@ function! s:mergeSourceCallback(data, i, t, d) abort
 endfunction
 " }}}
 
+" takeUntil() {{{
 function! callbag#takeUntil(notfier) abort
     let l:data = { 'notifier': a:notfier }
     return function('s:takeUntilNotifier', [l:data])
@@ -550,5 +582,6 @@ function! s:takeUntilSinkCallback(data, t, d) abort
     if a:t == 2 && has_key(a:data, 'notifierTalkback') && a:data['notifierTalkback'] != 0 | call a:data['notifierTalkback'](2, callbag#undefined()) | endif
     call a:data['sourceTalkback'](a:t, a:d)
 endfunction
+" }}}
 
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
