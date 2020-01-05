@@ -100,7 +100,12 @@ function! callbag#demo() abort
         \ )
     call callbag#pipe(
         \ callbag#never(),
-        \ callbag#subscribe({x->s:log('next will not be called')}, {e->s:log('error will not be called')}, {->s:log('complete will not be called')}),
+        \ callbag#subscribe(
+        \   {x->s:log('next will not be called')},
+        \   {e->s:log('error will not be called')},
+        \   {->s:log('complete will not be called')},
+        \ ),
+        \ )
      call callbag#pipe(
         \ callbag#create({next,error,done->next('next')}),
         \ callbag#subscribe({

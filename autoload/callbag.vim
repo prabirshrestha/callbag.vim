@@ -693,6 +693,7 @@ function! s:flattenInnerSourceCallback(data, t, d) abort
     endif
 endfunction
 " }}}
+
 " scan() {{{
 function! callbag#scan(reducer, seed) abort
     let l:data = { 'reducer': a:reducer, 'seed': a:seed }
