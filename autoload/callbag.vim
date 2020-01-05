@@ -621,7 +621,11 @@ endfunction
 " }}}
 
 " flatten() {{{
-function! callbag#flatten(source) abort
+function! callbag#flatten() abort
+    return function('s:flattenSource')
+endfunction
+
+function! s:flattenSource(source) abort
     let l:data = { 'source': a:source }
     return function('s:flattenFactory', [l:data])
 endfunction
@@ -689,7 +693,6 @@ function! s:flattenInnerSourceCallback(data, t, d) abort
     endif
 endfunction
 " }}}
-
 " scan() {{{
 function! callbag#scan(reducer, seed) abort
     let l:data = { 'reducer': a:reducer, 'seed': a:seed }

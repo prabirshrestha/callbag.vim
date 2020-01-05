@@ -160,7 +160,7 @@ function! callbag#demo() abort
      call callbag#pipe(
         \ callbag#fromEvent('InsertEnter'),
         \ callbag#map({x->callbag#interval(1000)}),
-        \ function('callbag#flatten'),
+        \ callbag#flatten(),
         \ callbag#forEach({x->s:log(x)}),
         \ )
      call callbag#pipe(
