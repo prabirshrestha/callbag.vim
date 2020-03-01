@@ -724,6 +724,38 @@ function! s:takeUntilSinkCallback(data, t, d) abort
 endfunction
 " }}}
 
+" takeWhile() {{{
+function! callbag#takeWhile(predicate) abort
+    let l:data = { 'predicate': a:predicate }
+    return function('s:takeWhileFactory', [l:data])
+endfunction
+
+function! s:takeWhileFactory(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:takeWhileSourceFactory', [a:data])
+endfunction
+
+function! s:takeWhileSourceFactory(data, start, sink) abort
+	if a:start != 0 | return | endif
+	let a:data['sink'] = a:sink
+	call a:data['source'](0, function('s:takeWhileSourceCallback', [a:data]))
+endfunction
+
+function! s:takeWhileSourceCallback(data, t, d) abort
+	if a:t == 0
+		let a:data['sourceTalkback'] = a:d
+	endif
+
+	if a:t == 1 && !a:data['predicate'](a:d)
+		call a:data['sourceTalkback'](2, callbag#undefined())
+		call a:data['sink'](2, callbag#undefined())
+		return
+	endif
+
+	call a:data['sink'](a:t, a:d)
+endfunction
+" }}}
+
 " group() {{{
 function! callbag#group(n) abort
     let l:data = { 'n': a:n }
