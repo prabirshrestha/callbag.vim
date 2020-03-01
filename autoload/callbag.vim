@@ -5,6 +5,16 @@ endfunction
 function! s:noop(...) abort
 endfunction
 
+function! s:createArrayWithSize(size, defaultValue) abort
+	let l:i = 0
+	let l:array = []
+	while l:i < a:size
+		call add(l:array, a:defaultValue)
+		let l:i = l:i + 1
+	endwhile
+	return l:array
+endfunction
+
 " pipe() {{{
 function! callbag#pipe(...) abort
     let l:Res = a:1
@@ -566,6 +576,81 @@ function! s:concatSourceCallback(data, t, d) abort
     else
         call a:data['sink'](a:t, a:d)
     endif
+endfunction
+" }}}
+
+" combine() {{{
+function! callbag#combine(...) abort
+    let l:data = { 'sources': a:000 }
+    return function('s:combineFactory', [l:data])
+endfunction
+
+let s:combineEmptyToken = '__callback__combine_empty_token__'
+function! s:combineFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['n'] = len(a:data['sources'])
+    if a:data['n'] == 0
+        call a:data['sink'](0, function('s:noop'))
+		call a:data['sink'](1, [])
+        call a:data['sink'](2, callbag#undefined())
+        return
+    endif
+	let a:data['Ns'] = a:data['n'] " start counter
+	let a:data['Nd'] = a:data['n'] " data counter
+	let a:data['Ne'] = a:data['n'] " end counter
+	let a:data['vals'] = s:createArrayWithSize(a:data['n'], callbag#undefined())
+	let a:data['sourceTalkbacks'] = s:createArrayWithSize(a:data['n'], callbag#undefined())
+	let a:data['talkback'] = function('s:combineTalkbackCallback', [a:data])
+	let l:i = 0
+	for l:Source in a:data['sources']
+		let a:data['vals'][l:i] = s:combineEmptyToken
+		call l:Source(0, function('s:combineSourceCallback', [a:data, l:i]))
+		let l:i = l:i + 1
+	endfor
+endfunction
+
+function! s:combineTalkbackCallback(data, t, d) abort
+	if a:t == 0 | return | endif
+	let l:i = 0
+	while l:i < a:data['n']
+		call a:data['sourceTalkbacks'][l:i](a:t, a:d)
+		let l:i = l:i + 1
+	endwhile
+endfunction
+
+function! s:combineSourceCallback(data, i, t, d) abort
+	if a:t == 0
+		let a:data['sourceTalkbacks'][a:i] = a:d
+		let a:data['Ns'] = a:data['Ns'] - 1
+		if a:data['Ns'] == 0 | call a:data['sink'](0, a:data['talkback']) | endif
+	elseif a:t == 1
+		if a:data['Nd'] <= 0
+			let l:_Nd = 0
+		else
+			if a:data['vals'][a:i] == s:combineEmptyToken
+				let a:data['Nd'] = a:data['Nd'] - 1
+			endif
+			let l:_Nd = a:data['Nd']
+		endif
+		let a:data['vals'][a:i] = a:d
+		if l:_Nd == 0
+			let l:arr = s:createArrayWithSize(a:data['n'], callbag#undefined())
+			let l:j = 0
+			while l:j < a:data['n']
+				let l:arr[l:j] = a:data['vals'][l:j]
+				let l:j = l:j + 1
+			endwhile
+			call a:data['sink'](1, l:arr)
+		endif
+	elseif a:t == 2
+		let a:data['Ne'] = a:data['Ne'] - 1
+		if a:data['Ne'] == 0
+			call a:data['sink'](2, callbag#undefined())
+		endif
+	else
+		call a:data['sink'](a:t, a:d)
+	endif
 endfunction
 " }}}
 
