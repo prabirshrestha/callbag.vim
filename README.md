@@ -229,6 +229,16 @@ function! callbag#demo() abort
 endfunction
 ```
 
+## Embedding
+
+Please do not take direct dependency on this plugin and instead embed it using the following command.
+
+```vim
+:CallbagEmbed path=./autoload/myplugin/callbag.vim namespace=myplugin#callbag
+```
+
+This can then be referenced using `myplugin#callbag#pipe()`
+
 ## License
 
 MIT
