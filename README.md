@@ -174,15 +174,15 @@ function! callbag#demo() abort
         \ callbag#forEach({x->s:log(x)}),
         \ )
 	call callbag#pipe(
-		\ callbag#concat(
-		\  callbag#of(1,2,3),
-		\  callbag#of(4,5,6),
- 		\ ),
-		\ callbag#subscribe({
-		\   'next':{x->s:log('next ' . x)},
-		\   'complete': {->s:log('complete')},
-		\ }),
-		\ )
+        \ callbag#concat(
+        \  callbag#of(1,2,3),
+        \  callbag#of(4,5,6),
+        \ ),
+        \ callbag#subscribe({
+        \   'next':{x->s:log('next ' . x)},
+        \   'complete': {->s:log('complete')},
+        \ }),
+        \ )
 endfunction
 ```
 
