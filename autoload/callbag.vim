@@ -514,6 +514,61 @@ function! s:mergeSourceCallback(data, i, t, d) abort
 endfunction
 " }}}
 
+" concat() {{{
+function! callbag#concat(...) abort
+    let l:data = { 'sources': a:000 }
+    return function('s:concatFactory', [l:data])
+endfunction
+
+let s:concatUniqueToken = '__callback__concat_unique_token__'
+function! s:concatFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['n'] = len(a:data['sources'])
+    if a:data['n'] == 0
+        call a:data['sink'](0, function('s:noop'))
+        call a:data['sink'](2, callbag#undefined())
+        return
+    endif
+    let a:data['i'] = 0
+    let a:data['lastPull'] = s:concatUniqueToken
+    let a:data['talkback'] = function('s:concatTalkbackCallback', [a:data])
+    let a:data['next'] = function('s:concatNext', [a:data])
+    call a:data['next']()
+endfunction
+
+function! s:concatTalkbackCallback(data, t, d) abort
+    if a:t == 1 | let a:data['lastPull'] = a:d | endif
+    call a:data['sourceTalkback'](a:t, a:d)
+endfunction
+
+function! s:concatNext(data) abort
+    if a:data['i'] == a:data['n']
+        call a:data['sink'](2, callbag#undefined())
+        return
+    endif
+    call a:data['sources'][a:data['i']](0, function('s:concatSourceCallback', [a:data]))
+endfunction
+
+function! s:concatSourceCallback(data, t, d) abort
+    if a:t == 0
+        let a:data['sourceTalkback'] = a:d
+        if a:data['i'] == 0
+            call a:data['sink'](0, a:data['talkback'])
+        elseif (a:data['lastPull']) != s:concatUniqueToken
+            call a:data['sourceTalkback'](1, a:data['lastPull'])
+        endif
+    elseif a:t == 2 && a:d != callbag#undefined()
+        call a:data['sink'](2, a:d)
+    elseif a:t == 2 
+        let a:data['i'] = a:data['i'] + 1
+        call a:data['next']()
+    else
+        call a:data['sink'](a:t, a:d)
+    endif
+endfunction
+" }}}
+
 " takeUntil() {{{
 function! callbag#takeUntil(notfier) abort
     let l:data = { 'notifier': a:notfier }
@@ -717,7 +772,7 @@ function! s:scanSourceCallback(data, t, d) abort
         let a:data['acc'] = a:data['reducer'](a:data['acc'], a:d)
         call a:data['sink'](1, a:data['acc'])
     else
-        call a:data['sink'](a:t, a:d)
+		call a:data['sink'](a:t, a:d)
     endif
 endfunction
 " }}}

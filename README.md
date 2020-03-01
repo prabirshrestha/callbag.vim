@@ -25,6 +25,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
+| Yes           | concat                                                 |
 | Yes           | debounceTime                                           |
 | Yes           | delay                                                  |
 | Yes           | filter                                                 |
@@ -35,7 +36,6 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | scan                                                   |
 | Yes           | take                                                   |
 | Yes           | takeUntil                                              |
-| No            | concat                                                 |
 | No            | concatWith                                             |
 | No            | distinctUntilChanged                                   |
 | No            | mergeWith                                              |
@@ -173,6 +173,16 @@ function! callbag#demo() abort
         \ callbag#scan({prev, x-> prev + x}, 0),
         \ callbag#forEach({x->s:log(x)}),
         \ )
+	call callbag#pipe(
+		\ callbag#concat(
+		\  callbag#of(1,2,3),
+		\  callbag#of(4,5,6),
+ 		\ ),
+		\ callbag#subscribe({
+		\   'next':{x->s:log('next ' . x)},
+		\   'complete': {->s:log('complete')},
+		\ }),
+		\ )
 endfunction
 ```
 
