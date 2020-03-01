@@ -52,9 +52,11 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
+| Yes           | operate                                                |
 | Yes           | pipe                                                   |
 
 `pipe()`'s first argument should be a source factory.
+`operate()` doesn't requires first function to be the source.
 
 ***Note** In order to support older version of vim without lambdas, callbag.vim explicitly doesn't use lambdas in the source code.*
 
@@ -210,6 +212,19 @@ function! callbag#demo() abort
         \   'next':{x->s:log('next ' . x)},
         \   'complete': {->s:log('complete')},
         \ }),
+        \ )
+
+    let l:MapAndTake3 = callbag#operate(
+        \ callbag#map({x->x*10}),
+        \ callbag#take(3),
+        \ )
+    call callbag#pipe(
+        \ callbag#of(1,2,3,4,5,6,7,8,9),
+        \ l:MapAndTake3,
+        \ callbag#subscribe({
+        \   'next': {x->s:log(x)},
+        \   'complete': {->s:log('complete')},
+        \ })
         \ )
 endfunction
 ```
