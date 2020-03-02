@@ -8,6 +8,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 |---------------|--------------------------------------------------------|
 | Yes           | create                                                 |
 | Yes           | empty                                                  |
+| Yes           | fromArray                                              |
 | Yes           | fromEvent                                              |
 | Yes           | interval                                               |
 | Yes           | lazy                                                   |
@@ -225,6 +226,13 @@ function! callbag#demo() abort
         \   'next': {x->s:log(x)},
         \   'complete': {->s:log('complete')},
         \ })
+        \ )
+    call callbag#pipe(
+        \ callbag#fromArray([1,2,3,4]),
+        \ callbag#subscribe({
+        \   'next': {x->s:log(x)},
+        \   'complete': {->s:log('complete')},
+        \ }),
         \ )
 endfunction
 ```
