@@ -200,15 +200,15 @@ function! callbag#demo() abort
         \  callbag#interval(100),
         \  callbag#interval(350),
         \ ),
-		\ callbag#take(10),
+        \ callbag#take(10),
         \ callbag#subscribe({
         \   'next':{x->s:log('next '. x[0] . ' ' . x[1])},
         \   'complete': {->s:log('complete')},
         \ }),
         \ )
     call callbag#pipe(
-		\ callbag#of(1, 2, 3, 4, 5),
-		\ callbag#takeWhile({x -> x != 4}),
+        \ callbag#of(1, 2, 3, 4, 5),
+        \ callbag#takeWhile({x -> x != 4}),
         \ callbag#subscribe({
         \   'next':{x->s:log('next ' . x)},
         \   'complete': {->s:log('complete')},

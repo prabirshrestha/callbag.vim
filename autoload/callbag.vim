@@ -6,13 +6,13 @@ function! s:noop(...) abort
 endfunction
 
 function! s:createArrayWithSize(size, defaultValue) abort
-	let l:i = 0
-	let l:array = []
-	while l:i < a:size
-		call add(l:array, a:defaultValue)
-		let l:i = l:i + 1
-	endwhile
-	return l:array
+    let l:i = 0
+    let l:array = []
+    while l:i < a:size
+        call add(l:array, a:defaultValue)
+        let l:i = l:i + 1
+    endwhile
+    return l:array
 endfunction
 
 " pipe() {{{
@@ -98,21 +98,21 @@ endfunction
 
 " lazy() {{{
 function! callbag#lazy(F) abort
-	let l:data = { 'F': a:F }
-	return function('s:lazyFactory', [l:data])
+    let l:data = { 'F': a:F }
+    return function('s:lazyFactory', [l:data])
 endfunction
 
 function! s:lazyFactory(data, start, sink) abort
-	if a:start != 0 | return | endif
-	let a:data['sink'] = a:sink
-	let a:data['unsubed'] = 0
-	call a:data['sink'](0, function('s:lazySinkCallback', [a:data]))
-	call a:data['sink'](1, a:data['F']())
-	if !a:data['unsubed'] | call a:data['sink'](2, callbag#undefined()) | endif
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['unsubed'] = 0
+    call a:data['sink'](0, function('s:lazySinkCallback', [a:data]))
+    call a:data['sink'](1, a:data['F']())
+    if !a:data['unsubed'] | call a:data['sink'](2, callbag#undefined()) | endif
 endfunction
 
 function! s:lazySinkCallback(data, t, d) abort
-	if a:t == 2 | let a:data['unsubed'] = 1 | endif
+    if a:t == 2 | let a:data['unsubed'] = 1 | endif
 endfunction
 " }}}
 
@@ -356,16 +356,16 @@ function! s:fromEventFactory(data, start, sink) abort
     let s:event_handlers_data[a:data['handler_index']] = a:data
 
     execute 'augroup ' . a:data['augroup']
-        execute 'autocmd!'
-        let l:events = type(a:data['events']) == type('') ? [a:data['events']] : a:data['events']
-        for l:event in l:events
-            let l:exec =  'call s:notify_event_handler(' . a:data['handler_index'] . ')'
-            if type(l:event) == type('')
-                execute 'au ' . l:event . ' * ' . l:exec
-            else
-                execute 'au ' . join(l:event, ' ') .' ' .  l:exec
-            endif
-        endfor
+    execute 'autocmd!'
+    let l:events = type(a:data['events']) == type('') ? [a:data['events']] : a:data['events']
+    for l:event in l:events
+        let l:exec =  'call s:notify_event_handler(' . a:data['handler_index'] . ')'
+        if type(l:event) == type('')
+            execute 'au ' . l:event . ' * ' . l:exec
+        else
+            execute 'au ' . join(l:event, ' ') .' ' .  l:exec
+        endif
+    endfor
     execute 'augroup end'
 endfunction
 
@@ -378,7 +378,7 @@ function! s:fromEventSinkHandler(data, t, ...) abort
     if a:t != 2 | return | endif
     let a:data['disposed'] = 1
     execute 'augroup ' a:data['augroup']
-        autocmd!
+    autocmd!
     execute 'augroup end'
     if has_key(s:event_handlers_data, a:data['handler_index'])
         call remove(s:event_handlers_data, a:data['handler_index'])
@@ -637,65 +637,65 @@ function! s:combineFactory(data, start, sink) abort
     let a:data['n'] = len(a:data['sources'])
     if a:data['n'] == 0
         call a:data['sink'](0, function('s:noop'))
-		call a:data['sink'](1, [])
+        call a:data['sink'](1, [])
         call a:data['sink'](2, callbag#undefined())
         return
     endif
-	let a:data['Ns'] = a:data['n'] " start counter
-	let a:data['Nd'] = a:data['n'] " data counter
-	let a:data['Ne'] = a:data['n'] " end counter
-	let a:data['vals'] = s:createArrayWithSize(a:data['n'], callbag#undefined())
-	let a:data['sourceTalkbacks'] = s:createArrayWithSize(a:data['n'], callbag#undefined())
-	let a:data['talkback'] = function('s:combineTalkbackCallback', [a:data])
-	let l:i = 0
-	for l:Source in a:data['sources']
-		let a:data['vals'][l:i] = s:combineEmptyToken
-		call l:Source(0, function('s:combineSourceCallback', [a:data, l:i]))
-		let l:i = l:i + 1
-	endfor
+    let a:data['Ns'] = a:data['n'] " start counter
+    let a:data['Nd'] = a:data['n'] " data counter
+    let a:data['Ne'] = a:data['n'] " end counter
+    let a:data['vals'] = s:createArrayWithSize(a:data['n'], callbag#undefined())
+    let a:data['sourceTalkbacks'] = s:createArrayWithSize(a:data['n'], callbag#undefined())
+    let a:data['talkback'] = function('s:combineTalkbackCallback', [a:data])
+    let l:i = 0
+    for l:Source in a:data['sources']
+        let a:data['vals'][l:i] = s:combineEmptyToken
+        call l:Source(0, function('s:combineSourceCallback', [a:data, l:i]))
+        let l:i = l:i + 1
+    endfor
 endfunction
 
 function! s:combineTalkbackCallback(data, t, d) abort
-	if a:t == 0 | return | endif
-	let l:i = 0
-	while l:i < a:data['n']
-		call a:data['sourceTalkbacks'][l:i](a:t, a:d)
-		let l:i = l:i + 1
-	endwhile
+    if a:t == 0 | return | endif
+    let l:i = 0
+    while l:i < a:data['n']
+        call a:data['sourceTalkbacks'][l:i](a:t, a:d)
+        let l:i = l:i + 1
+    endwhile
 endfunction
 
 function! s:combineSourceCallback(data, i, t, d) abort
-	if a:t == 0
-		let a:data['sourceTalkbacks'][a:i] = a:d
-		let a:data['Ns'] = a:data['Ns'] - 1
-		if a:data['Ns'] == 0 | call a:data['sink'](0, a:data['talkback']) | endif
-	elseif a:t == 1
-		if a:data['Nd'] <= 0
-			let l:_Nd = 0
-		else
-			if a:data['vals'][a:i] == s:combineEmptyToken
-				let a:data['Nd'] = a:data['Nd'] - 1
-			endif
-			let l:_Nd = a:data['Nd']
-		endif
-		let a:data['vals'][a:i] = a:d
-		if l:_Nd == 0
-			let l:arr = s:createArrayWithSize(a:data['n'], callbag#undefined())
-			let l:j = 0
-			while l:j < a:data['n']
-				let l:arr[l:j] = a:data['vals'][l:j]
-				let l:j = l:j + 1
-			endwhile
-			call a:data['sink'](1, l:arr)
-		endif
-	elseif a:t == 2
-		let a:data['Ne'] = a:data['Ne'] - 1
-		if a:data['Ne'] == 0
-			call a:data['sink'](2, callbag#undefined())
-		endif
-	else
-		call a:data['sink'](a:t, a:d)
-	endif
+    if a:t == 0
+        let a:data['sourceTalkbacks'][a:i] = a:d
+        let a:data['Ns'] = a:data['Ns'] - 1
+        if a:data['Ns'] == 0 | call a:data['sink'](0, a:data['talkback']) | endif
+    elseif a:t == 1
+        if a:data['Nd'] <= 0
+            let l:_Nd = 0
+        else
+            if a:data['vals'][a:i] == s:combineEmptyToken
+                let a:data['Nd'] = a:data['Nd'] - 1
+            endif
+            let l:_Nd = a:data['Nd']
+        endif
+        let a:data['vals'][a:i] = a:d
+        if l:_Nd == 0
+            let l:arr = s:createArrayWithSize(a:data['n'], callbag#undefined())
+            let l:j = 0
+            while l:j < a:data['n']
+                let l:arr[l:j] = a:data['vals'][l:j]
+                let l:j = l:j + 1
+            endwhile
+            call a:data['sink'](1, l:arr)
+        endif
+    elseif a:t == 2
+        let a:data['Ne'] = a:data['Ne'] - 1
+        if a:data['Ne'] == 0
+            call a:data['sink'](2, callbag#undefined())
+        endif
+    else
+        call a:data['sink'](a:t, a:d)
+    endif
 endfunction
 " }}}
 
@@ -781,23 +781,23 @@ function! s:takeWhileFactory(data, source) abort
 endfunction
 
 function! s:takeWhileSourceFactory(data, start, sink) abort
-	if a:start != 0 | return | endif
-	let a:data['sink'] = a:sink
-	call a:data['source'](0, function('s:takeWhileSourceCallback', [a:data]))
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    call a:data['source'](0, function('s:takeWhileSourceCallback', [a:data]))
 endfunction
 
 function! s:takeWhileSourceCallback(data, t, d) abort
-	if a:t == 0
-		let a:data['sourceTalkback'] = a:d
-	endif
+    if a:t == 0
+        let a:data['sourceTalkback'] = a:d
+    endif
 
-	if a:t == 1 && !a:data['predicate'](a:d)
-		call a:data['sourceTalkback'](2, callbag#undefined())
-		call a:data['sink'](2, callbag#undefined())
-		return
-	endif
+    if a:t == 1 && !a:data['predicate'](a:d)
+        call a:data['sourceTalkback'](2, callbag#undefined())
+        call a:data['sink'](2, callbag#undefined())
+        return
+    endif
 
-	call a:data['sink'](a:t, a:d)
+    call a:data['sink'](a:t, a:d)
 endfunction
 " }}}
 
@@ -934,7 +934,7 @@ function! s:scanSourceCallback(data, t, d) abort
         let a:data['acc'] = a:data['reducer'](a:data['acc'], a:d)
         call a:data['sink'](1, a:data['acc'])
     else
-		call a:data['sink'](a:t, a:d)
+        call a:data['sink'](a:t, a:d)
     endif
 endfunction
 " }}}
