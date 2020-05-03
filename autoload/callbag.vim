@@ -992,4 +992,63 @@ function! s:scanSourceCallback(data, t, d) abort
 endfunction
 " }}}
 
+" {{{
+function! callbag#share(source) abort
+    let l:data = { 'source': a:source, 'sinks': [] }
+    return function('s:shareFactory', [l:data])
+endfunction
+
+function! s:shareFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    call add(a:data['sinks'], a:sink)
+
+    let a:data['talkback'] = function('s:shareTalkbackCallback', [a:data, a:sink])
+
+    if len(a:data['sinks']) == 1
+        call a:data['source'](0, function('s:shareSourceCallback', [a:data, a:sink]))
+        return
+    endif
+
+    call a:sink(0, a:data['talkback'])
+endfunction
+
+function! s:shareTalkbackCallback(data, sink, t, d) abort
+    if a:t == 2
+        let l:i = -1
+        let l:found = 0
+        for l:S in a:data['sinks']
+            let l:i += 1
+            if l:S == a:sink
+                let l:found = 1
+                break
+            endif
+        endfor
+
+        if l:found
+            call remove(a:data['sinks'], l:i)
+        endif
+
+        if !empty(a:data['sinks'])
+            call a:data['sourceTalkback'](2, callbag#undefined())
+        endif
+    else
+        call a:data['sourceTalkback'](a:t, a:d)
+    endif
+endfunction
+
+function! s:shareSourceCallback(data, sink, t, d) abort
+    if a:t == 0
+        let a:data['sourceTalkback'] = a:d
+        call a:sink(0, a:data['talkback'])
+    else
+        for l:S in a:data['sinks']
+            call l:S(a:t, a:d)
+        endfor
+    endif
+    if a:t == 2
+        let a:data['sinks'] = []
+    endif
+endfunction
+" }}}
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:

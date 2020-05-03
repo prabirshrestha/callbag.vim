@@ -27,7 +27,8 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
-| Yes           | subject                                                |
+| Yes           | makeSubject                                            |
+| Yes           | share                                                  |
 
 ## Operators
 
@@ -253,6 +254,16 @@ function! callbag#demo() abort
     call l:Subject(1, 'hello')
     call l:Subject(1, 'world')
     call l:Subject(2, callbag#undefined())
+
+    let l:ShareSouce = callbag#share(callbag#interval(1000))
+    call callbag#pipe(
+        \ l:ShareSouce,
+        \ callbag#subscribe({x->s:log('first ' . x)})
+        \ )
+    call timer_start(3500, {->callbag#pipe(
+                \ l:ShareSouce,
+                \ callbag#subscribe({x->s:log('second ' . x)})
+                \ )})
 endfunction
 ```
 
