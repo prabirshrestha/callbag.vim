@@ -23,6 +23,12 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | forEach                                                |
 | Yes           | subscribe                                              |
 
+## Multicasting
+
+| Implemented   | Name                                                   |
+|---------------|--------------------------------------------------------|
+| Yes           | subject                                                |
+
 ## Operators
 
 | Implemented   | Name                                                   |
@@ -234,6 +240,19 @@ function! callbag#demo() abort
         \   'complete': {->s:log('complete')},
         \ }),
         \ )
+
+    let l:Subject = callbag#makeSubject()
+    let s:Dispose = callbag#pipe(
+        \ l:Subject,
+        \ callbag#subscribe({
+        \   'next': {d->s:log(d)},
+        \   'error': {e->s:log(e)},
+        \   'complete': {->s:Dispose()},
+        \ })
+        \ )
+    call l:Subject(1, 'hello')
+    call l:Subject(1, 'world')
+    call l:Subject(2, callbag#undefined())
 endfunction
 ```
 

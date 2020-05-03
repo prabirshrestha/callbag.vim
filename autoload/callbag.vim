@@ -45,6 +45,59 @@ function! s:operateFactory(data, src) abort
 endfunction
 " }}}
 
+" makeSubject() {{{
+function! callbag#makeSubject() abort
+    let l:data = { 'sinks': [] }
+    return function('s:makeSubjectFactory', [l:data])
+endfunction
+
+function! s:makeSubjectFactory(data, t, d) abort
+    if a:t == 0
+        let l:Sink = a:d
+        call add(a:data['sinks'], l:Sink)
+        call l:Sink(0, function('s:makeSubjectSinkCallback', [a:data, l:Sink]))
+    else
+        let l:zinkz = copy(a:data['sinks'])
+        let l:i = 0
+        let l:n = len(l:zinkz)
+        while l:i < l:n
+            let l:Sink = l:zinkz[l:i]
+            let l:j = -1
+            let l:found = 0
+            for l:Item in a:data['sinks']
+                let l:j += 1
+                if l:Item == l:Sink
+                    let l:found = 1
+                    break
+                endif
+            endfor
+
+            if l:found
+                call l:Sink(a:t, a:d)
+            endif
+            let l:i += 1
+        endwhile
+    endif
+endfunction
+
+function! s:makeSubjectSinkCallback(data, Sink, t, d) abort
+    if a:t == 2
+        let l:i = -1
+        let l:found = 0
+        for l:Item in a:data['sinks']
+            let l:i += 1
+            if l:Item == a:Sink
+                let l:found = 1
+                break
+            endif
+        endfor
+        if l:found
+            call remove(a:data['sinks'], l:i)
+        endif
+    endif
+endfunction
+" }}}
+
 " create() {{{
 function! callbag#create(...) abort
     let l:data = {}
