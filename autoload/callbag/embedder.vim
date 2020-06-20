@@ -38,7 +38,7 @@ function! callbag#embedder#embed(...) abort
 	
 	let l:content = [
 		\ printf('" https://github.com/prabirshrestha/callbag.vim#%s', s:get_git_commit()),
-		\ '"    :CallbagEmbeed ' . join(a:000, ' '),
+		\ '"    :CallbagEmbed ' . join(a:000, ' '),
 		\ '',	
 		\ ]
 
