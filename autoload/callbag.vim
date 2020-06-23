@@ -752,6 +752,46 @@ function! s:combineSourceCallback(data, i, t, d) abort
 endfunction
 " }}}
 
+" distinctUntilChanged {{{
+function! s:distinctUntilChangedDefaultCompare(a, b) abort
+    return a:a == a:b
+endfunction
+
+function! callbag#distinctUntilChanged(...) abort
+    let l:data = { 'compare': a:0 == 0 ? function('s:distinctUntilChangedDefaultCompare') : a:1 }
+    return function('s:distinctUntilChangedSourceFactory', [l:data])
+endfunction
+
+function! s:distinctUntilChangedSourceFactory(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:distinctUntilChangedSinkFactory', [a:data])
+endfunction
+
+function! s:distinctUntilChangedSinkFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['inited'] = 0
+    call a:data['source'](0, function('s:distinctUntilChangedSourceCallback', [a:data]))
+endfunction
+
+function! s:distinctUntilChangedSourceCallback(data, t, d) abort
+    if a:t == 0 | let a:data['talkback'] = a:d | endif
+    if a:t != 1
+        call a:data['sink'](a:t, a:d)
+        return
+    endif
+
+    if a:data['inited'] && has_key(a:data, 'prev') && a:data['compare'](a:data['prev'], a:d)
+        call a:data['talkback'](1, callbag#undefined())
+        return
+    endif
+
+    let a:data['inited'] = 1
+    let a:data['prev'] = a:d
+    call a:data['sink'](1, a:d)
+endfunction
+" }}}
+
 " takeUntil() {{{
 function! callbag#takeUntil(notfier) abort
     let l:data = { 'notifier': a:notfier }
