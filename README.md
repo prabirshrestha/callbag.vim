@@ -38,6 +38,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | concat                                                 |
 | Yes           | debounceTime                                           |
 | Yes           | delay                                                  |
+| Yes           | distinctUntilChanged                                   |
 | Yes           | filter                                                 |
 | Yes           | flatten                                                |
 | Yes           | group                                                  |
@@ -48,7 +49,6 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | takeUntil                                              |
 | Yes           | takeWhile                                              |
 | No            | concatWith                                             |
-| No            | distinctUntilChanged                                   |
 | No            | mergeWith                                              |
 | No            | rescue                                                 |
 | No            | retry                                                  |
@@ -66,7 +66,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 `pipe()`'s first argument should be a source factory.
 `operate()` doesn't requires first function to be the source.
 
-***Note** In order to support older version of vim without lambdas, callbag.vim explicitly doesn't use lambdas in the source code.*
+**Note** In order to support older version of vim without lambdas, callbag.vim explicitly doesn't use lambdas in the source code.
 
 ## Difference with callbag spec
 
@@ -264,6 +264,14 @@ function! callbag#demo() abort
                 \ l:ShareSouce,
                 \ callbag#subscribe({x->s:log('second ' . x)})
                 \ )})
+    call callbag#pipe(
+        \ callbag#of(1, 1, 2, 3, 3, 3, 4, 1, 5),
+        \ callbag#distinctUntilChanged(),
+        \ callbag#subscribe({
+        \   'next': {x->s:log('next ' . x)},
+        \   'complete': {-> s:log('complete')},
+        \ }),
+        \ )
 endfunction
 ```
 
