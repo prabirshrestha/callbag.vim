@@ -1032,6 +1032,62 @@ function! s:scanSourceCallback(data, t, d) abort
 endfunction
 " }}}
 
+" switchMap() {{{
+function! callbag#switchMap(makeSource, ...) abort
+    let l:data = { 'makeSource': a:makeSource }
+    if a:0 == 1
+        let l:data['combineResults'] = a:1
+    else
+        let l:data['combineResults'] = function('s:switchMapDefaultCombineResults')
+    endif
+    return function('s:switchMapSourceCallback', [l:data])
+endfunction
+
+function! s:switchMapDefaultCombineResults(a, b) abort
+    return a:b
+endfunction
+
+function! s:switchMapSourceCallback(data, inputSource) abort
+    let a:data['inputSource'] = a:inputSource
+    return function('s:switchMapFactory', [a:data])
+endfunction
+
+function! s:switchMapFactory(data, start, outputSink) abort
+    if a:start != 0 | return | endif
+    let a:data['outputSink'] = a:outputSink
+    let a:data['sourceEnded'] = 0
+    call a:data['inputSource'](0, function('s:switchMapInputSourceCallback', [a:data]))
+endfunction
+
+function! s:switchMapInputSourceCallback(data, t, d) abort
+    if a:t == 0 | call a:data['outputSink'](a:t, a:d) | endif
+    if a:t == 1
+        if has_key(a:data, 'currSourceTalkback')
+            call a:data['currSourceTalkback'](2, callbag#undefined())
+            call remove(a:data, 'currSourceTalkback')
+        endif
+        let l:CurrSource = a:data['makeSource'](a:d)
+        call l:CurrSource(0, function('s:switchMapCurrSourceCallback', [a:data, a:t, a:d]))
+    endif
+    if a:t == 2
+        let a:data['sourceEnded'] = 1
+        if !has_key(a:data, 'currSourceTalkback') | call a:data['outputSink'](a:t, a:d) | endif
+    endif
+endfunction
+
+function! s:switchMapCurrSourceCallback(data, t, d, currT, currD) abort
+    if a:currT == 0 | let a:data['currSourceTalkback'] = a:currD | endif
+    if a:currT == 1 | call a:data['outputSink'](a:t, a:data['combineResults'](a:d, a:currD)) | endif
+    if (a:currT == 0 || a:currT == 1) && has_key(a:data, 'currSourceTalkback')
+        call a:data['currSourceTalkback'](1, callbag#undefined())
+    endif
+    if a:currT == 2
+        call remove(a:data, 'currSourceTalkback')
+        if a:data['sourceEnded'] | call a:data['outputSink'](a:currT, a:currD) | endif
+    endif
+endfunction
+" }}}
+
 " {{{
 function! callbag#share(source) abort
     let l:data = { 'source': a:source, 'sinks': [] }

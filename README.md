@@ -45,6 +45,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | map                                                    |
 | Yes           | merge                                                  |
 | Yes           | scan                                                   |
+| Yes           | switchMap                                              |
 | Yes           | take                                                   |
 | Yes           | takeUntil                                              |
 | Yes           | takeWhile                                              |
@@ -270,6 +271,16 @@ function! callbag#demo() abort
         \ callbag#subscribe({
         \   'next': {x->s:log('next ' . x)},
         \   'complete': {-> s:log('complete')},
+        \ }),
+        \ )
+
+    call callbag#pipe(
+        \ callbag#of('hi'),
+        \ callbag#switchMap({->callbag#of(10, 20, 30)}, {char, num-> char . num}),
+        \ callbag#subscribe({
+        \   'next':{x->s:log(x)},
+        \   'error':{e->s:log(e)},
+        \   'complete':{->s:log('complete')},
         \ }),
         \ )
 endfunction
