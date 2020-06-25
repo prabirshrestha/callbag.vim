@@ -135,7 +135,7 @@ function! s:createNext(data, d) abort
 endfunction
 
 function! s:createError(data, e) abort
-    if !a:data['end'] && e != callbag#undefined()
+    if !a:data['end'] && a:e != callbag#undefined()
         let a:data['end'] = 1
         call a:data['sink'](2, a:e)
     endif
@@ -299,7 +299,7 @@ endfunction
 
 function! s:takeTalkback(data, t, d) abort
     if a:t == 2
-        let a:data['end'] = true
+        let a:data['end'] = 1
         call a:data['sourceTalkback'](a:t, a:d)
     elseif a:data['taken'] < a:data['max']
         call a:data['sourceTalkback'](a:t, a:d)
@@ -606,7 +606,7 @@ function! s:mergeSourceCallback(data, i, t, d) abort
         let a:data['ended'] = 1
         let l:j = 0
         while l:j < a:data['n']
-            if l:j != l:i && l:j < len(a:data['sourceTalkbacks']) && a:data['sourceTalkbacks'][l:j] != 0
+            if l:j != a:i && l:j < len(a:data['sourceTalkbacks']) && a:data['sourceTalkbacks'][l:j] != 0
                 call a:data['sourceTalkbacks'][l:j](2, callbag#undefined())
             endif
             let l:j += 1
