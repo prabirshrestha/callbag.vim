@@ -49,6 +49,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | take                                                   |
 | Yes           | takeUntil                                              |
 | Yes           | takeWhile                                              |
+| Yes           | tap                                                    |
 | No            | concatWith                                             |
 | No            | mergeWith                                              |
 | No            | rescue                                                 |

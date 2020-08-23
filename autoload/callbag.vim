@@ -221,6 +221,46 @@ function! s:forEachOperationSource(data, t, d) abort
 endfunction
 " }}}
 
+" tap() {{{
+function! callbag#tap(...) abort
+    let l:data = {}
+    if type(a:1) == type({}) " a:1 { next, error, complete }
+        if has_key(a:1, 'next') | let l:data['next'] = a:1['next'] | endif
+        if has_key(a:1, 'error') | let l:data['error'] = a:1['error'] | endif
+        if has_key(a:1, 'complete') | let l:data['complete'] = a:1['complete'] | endif
+    else " a:1 = next, a:2 = error, a:3 = complete
+        if a:0 >= 1 | let l:data['next'] = a:1 | endif
+        if a:0 >= 2 | let l:data['error'] = a:2 | endif
+        if a:0 >= 3 | let l:data['complete'] = a:3 | endif
+    endif
+    return function('s:tapFactory', [l:data])
+endfunction
+
+function! s:tapFactory(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:tapSouceFactory', [a:data])
+endfunction
+
+function! s:tapSouceFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    call a:data['source'](0, function('s:tapSourceCallback', [a:data]))
+endfunction
+
+function! s:tapSourceCallback(data, t, d) abort
+    if a:t == 1 && a:d != callbag#undefined() && has_key(a:data, 'next')
+        call a:data['next'](a:d)
+    elseif a:t == 2
+        if a:d == callbag#undefined()
+            if has_key(a:data, 'complete') | call a:data['complete']() | endif
+        else
+            if has_key(a:data, 'error') | call a:data['error'](a:d) | endif
+        endif
+    endif
+    call a:data['sink'](a:t, a:d)
+endfunction
+" }}}
+
 " interval() {{{
 function! callbag#interval(period) abort
     let l:data = { 'period': a:period }

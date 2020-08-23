@@ -202,4 +202,10 @@ function! callbag#demo() abort
         \   'complete':{->s:log('complete')},
         \ }),
         \ )
+    
+    call callbag#pipe(
+        \ callbag#of(1, 2, 3),
+        \ callbag#tap({'next':{x->s:log(x)}, 'complete':{->s:log('complete')}}),
+        \ callbag#subscribe({}),
+        \ )
 endfunction
