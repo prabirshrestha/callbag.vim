@@ -224,7 +224,7 @@ endfunction
 " tap() {{{
 function! callbag#tap(...) abort
     let l:data = {}
-    if type(a:1) == type({}) " a:1 { next, error, complete }
+    if a:0 > 0 && type(a:1) == type({}) " a:1 { next, error, complete }
         if has_key(a:1, 'next') | let l:data['next'] = a:1['next'] | endif
         if has_key(a:1, 'error') | let l:data['error'] = a:1['error'] | endif
         if has_key(a:1, 'complete') | let l:data['complete'] = a:1['complete'] | endif
@@ -518,7 +518,7 @@ endfunction
 " subscribe() {{{
 function! callbag#subscribe(...) abort
     let l:data = {}
-    if type(a:1) == type({}) " a:1 { next, error, complete }
+    if a:0 > 0 && type(a:1) == type({}) " a:1 { next, error, complete }
         if has_key(a:1, 'next') | let l:data['next'] = a:1['next'] | endif
         if has_key(a:1, 'error') | let l:data['error'] = a:1['error'] | endif
         if has_key(a:1, 'complete') | let l:data['complete'] = a:1['complete'] | endif
