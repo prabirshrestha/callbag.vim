@@ -248,15 +248,9 @@ function! s:tapSouceFactory(data, start, sink) abort
 endfunction
 
 function! s:tapSourceCallback(data, t, d) abort
-    if a:t == 1 && a:d != callbag#undefined() && has_key(a:data, 'next')
-        call a:data['next'](a:d)
-    elseif a:t == 2
-        if a:d == callbag#undefined()
-            if has_key(a:data, 'complete') | call a:data['complete']() | endif
-        else
-            if has_key(a:data, 'error') | call a:data['error'](a:d) | endif
-        endif
-    endif
+    if a:t == 1 && has_key(a:data, 'next') | call a:data['next'](a:d) | endif
+    if a:t == 2 && a:d == lsp#callbag#undefined() && has_key(a:data, 'complete') | call a:data['complete']() | endif
+    if a:t == 2 && a:d != lsp#callbag#undefined() && has_key(a:data, 'error') | call a:data['error'](a:d) | endif
     call a:data['sink'](a:t, a:d)
 endfunction
 " }}}
