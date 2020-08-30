@@ -208,4 +208,21 @@ function! callbag#demo() abort
         \ callbag#tap({'next':{x->s:log(x)}, 'complete':{->s:log('complete')}}),
         \ callbag#subscribe(),
         \ )
+
+    " Plug 'vim-jp/vital.vim'
+    "
+    " call callbag#pipe(
+    "     \   callbag#fromPromise(s:promiseWait(2000)),
+    "     \   callbag#subscribe({
+    "     \       'next': {x->s:log('next')},
+    "     \       'complete':{->s:log('complete')},
+    "     \       'error': {e->s:log('error')},
+    "     \   })
+    "     \ )
+endfunction
+
+function! s:promiseWait(ms)
+    let s:V = vital#vital#new()
+    let s:Promise = s:V.import('Async.Promise')
+    return s:Promise.new({resolve -> timer_start(a:ms, resolve)})
 endfunction
