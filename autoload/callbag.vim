@@ -478,6 +478,40 @@ function! s:notify_event_handler(index) abort
 endfunction
 " }}}
 
+" fromPromise() {{{
+function! callbag#fromPromise(promise) abort
+    let l:data = { 'promise': a:promise }
+    return function('s:fromPromiseFactory', [l:data])
+endfunction
+
+function! s:fromPromiseFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['ended'] = 0
+    call a:data['promise'].then(
+        \ function('s:fromPromiseOnFulfilledCallback', [a:data]),
+        \ function('s:fromPromiseOnRejectedCallback', [a:data]),
+        \ )
+    call a:sink(0, function('s:fromPromiseSinkCallback', [a:data]))
+endfunction
+
+function! s:fromPromiseOnFulfilledCallback(data, ...) abort
+    if a:data['ended'] | return | endif
+    call a:data['sink'](1, a:0 > 0 ? a:1 : callbag#undefined())
+    if a:data['ended'] | return | endif
+    call a:data['sink'](2, callbag#undefined())
+endfunction
+
+function! s:fromPromiseOnRejectedCallback(data, err) abort
+    if a:data['ended'] | return | endif
+    call a:data['sink'](2, a:err)
+endfunction
+
+function! s:fromPromiseSinkCallback(data, t, ...) abort
+    if a:t == 2 | let a:data['ended'] = 1 | endif
+endfunction
+" }}}
+
 " debounceTime() {{{
 function! callbag#debounceTime(duration) abort
     let l:data = { 'duration': a:duration }
