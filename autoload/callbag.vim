@@ -1307,4 +1307,60 @@ function! s:shareSourceCallback(data, sink, t, d) abort
 endfunction
 " }}}
 
+" materialize() {{{
+function! callbag#materialize() abort
+    let l:data = {}
+    return function('s:materializeF', [l:data])
+endfunction
+
+function! s:materializeF(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:materializeFSource', [a:data])
+endfunction
+
+function! s:materializeFSource(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    call a:data['source'](0, function('s:materializeFSourceCallback', [a:data]))
+endfunction
+
+function! s:materializeFSourceCallback(data, t, d) abort
+    if a:t == 1
+        call a:data['sink'](1, callbag#createNextNotification(a:d))
+    elseif a:t == 2
+        call a:data['sink'](1, a:d == callbag#undefined()
+                    \ ? callbag#createCompleteNotification()
+                    \ : callbag#createErrorNotification(a:d))
+        call a:data['sink'](2, callbag#undefined())
+    else
+        call a:data['sink'](a:t, a:d)
+    endif
+endfunction
+" }}}
+
+" Notifications {{{
+function! callbag#createNextNotification(d) abort
+    return { 'kind': 'N', 'value': a:d }
+endfunction
+
+function! callbag#createCompleteNotification() abort
+    return { 'kind': 'C' }
+endfunction
+
+function! callbag#createErrorNotification(d) abort
+    return { 'kind': 'E', 'error': a:d }
+endfunction
+
+function! callbag#isNextNotification(d) abort
+    return type(a:d) == type({}) && a:d['kind'] == 'N'
+endfunction
+
+function! callbag#isCompleteNotification(d) abort
+    return type(a:d) == type({}) && a:d['kind'] == 'C'
+endfunction
+
+function! callbag#isErrorNotification(d) abort
+    return type(a:d) == type({}) && a:d['kind'] == 'E'
+endfunction
+" }}}
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:

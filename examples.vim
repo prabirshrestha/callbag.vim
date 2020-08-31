@@ -1,7 +1,7 @@
 let s:i = 0
 function! s:log(x) abort
     let s:i += 1
-    echom 'log ' . s:i . '   ' . a:x
+    echom 'log ' . s:i . '   ' . json_encode(a:x)
 endfunction
 
 function! callbag#demo() abort
@@ -207,6 +207,16 @@ function! callbag#demo() abort
         \ callbag#of(1, 2, 3),
         \ callbag#tap({'next':{x->s:log(x)}, 'complete':{->s:log('complete')}}),
         \ callbag#subscribe(),
+        \ )
+
+    call callbag#pipe(
+        \ callbag#of(1, 2, 3),
+        \ callbag#materialize(),
+        \ callbag#subscribe({
+        \   'next':{x->s:log(['next', x, callbag#isNextNotification(x), callbag#isErrorNotification(x), callbag#isCompleteNotification(x)])},
+        \   'error':{x->s:log(['error', x])},
+        \   'complete':{->s:log('complete')},
+        \ })
         \ )
 
     try

@@ -45,6 +45,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | flatten                                                |
 | Yes           | group                                                  |
 | Yes           | map                                                    |
+| Yes           | materialize                                            |
 | Yes           | merge                                                  |
 | Yes           | scan                                                   |
 | Yes           | switchMap                                              |
@@ -52,6 +53,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | takeUntil                                              |
 | Yes           | takeWhile                                              |
 | Yes           | tap                                                    |
+| No            | dematerialize                                          |
 | No            | concatWith                                             |
 | No            | mergeWith                                              |
 | No            | rescue                                                 |
