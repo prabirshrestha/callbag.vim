@@ -691,20 +691,20 @@ endfunction
 " of() {{{
 function! callbag#of(...) abort
     let l:data = { 'values': a:000 }
-    return function('s:arrayFactory', [l:data])
+    return function('s:listFactory', [l:data])
 endfunction
 " }}}
 
-" fromArray() {{{
-function! callbag#fromArray(array) abort
-    let l:data = { 'values': a:array }
-    return function('s:arrayFactory', [l:data])
+" fromList() {{{
+function! callbag#fromList(list) abort
+    let l:data = { 'values': a:list }
+    return function('s:listFactory', [l:data])
 endfunction
 
-function! s:arrayFactory(data, start, sink) abort
+function! s:listFactory(data, start, sink) abort
     if a:start != 0 | return | endif
     let a:data['disposed'] = 0
-    call a:sink(0, function('s:arraySinkCallback', [a:data]))
+    call a:sink(0, function('s:listSinkCallback', [a:data]))
     let l:i = 0
     let l:n = len(a:data['values'])
     while l:i < l:n
@@ -717,7 +717,7 @@ function! s:arrayFactory(data, start, sink) abort
 endfunction
 
 
-function! s:arraySinkCallback(data, t, ...) abort
+function! s:listSinkCallback(data, t, ...) abort
     if a:t != 2 | return | endif
     let a:data['disposed'] = 1
 endfunction
