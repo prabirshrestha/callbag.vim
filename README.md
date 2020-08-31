@@ -23,6 +23,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 |---------------|--------------------------------------------------------|
 | Yes           | forEach                                                |
 | Yes           | subscribe                                              |
+| Yes           | toList                                                 |
 
 ## Multicasting
 
@@ -97,6 +98,43 @@ You can use `callbag#undefined()` method to pass undefined.
 ```
 
 Refer to [examples.vim](examples.vim) for more.
+
+## Synchronously waiting for completion or error
+
+`callbag#toList()` operator with `wait()` will allow to synchronously wait for 
+completion or error. Default value for `sleep` is `1` miliseconds and `timeout` 
+is `-1` which means it will never timeout.
+
+```vim
+try
+    let l:result = callbag#pipe(
+        \ callbag#interval(250),
+        \ callbag#take(3),
+        \ callbag#toList(),
+        \ ).wait({ 'sleep': 1, 'timeout': 5000 })
+    echom l:result
+catch
+    " error may be thrown due to timeout or if it emits error
+    echom v:exception . ' ' . v:throwpoint
+endtry
+```
+
+Similar to `callbag#subscribe` you can manually unsubscribe instead of waiting
+for timeout. By default `wait()` will auto unsubscribe when it completes or errors.
+
+```vim
+let l:result = callbag#pipe(
+    \ callbag#interval(250),
+    \ callbag#take(10),
+    \ callbag#toList(),
+    \ )
+
+call timer_start(250, {x->l:result.unsubscribe()})
+let l:items = l:result.wait()
+```
+
+`wait()` is already implemented in an efficient way i.e. if it has already completed
+or errored it will synchronously return values without any `sleep` or `timers`.
 
 ## Embedding
 

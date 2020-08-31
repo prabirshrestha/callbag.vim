@@ -209,6 +209,18 @@ function! callbag#demo() abort
         \ callbag#subscribe(),
         \ )
 
+    try
+        let l:result = callbag#pipe(
+            \ callbag#interval(250),
+            \ callbag#take(3),
+            \ callbag#toList(),
+            \ ).wait({ 'sleep': 1, 'timeout': 5000 })
+        echom l:result
+    catch
+        " error may be thrown due to timeout or if it emits error
+        echom v:exception . ' ' . v:throwpoint
+    endtry
+
     " Plug 'vim-jp/vital.vim'
     "
     " call callbag#pipe(

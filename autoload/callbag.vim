@@ -576,6 +576,98 @@ function! s:subscribeDispose(data, ...) abort
 endfunction
 " }}}
 
+" toList() {{{
+function! callbag#toList() abort
+    let l:data = { 'done': 0, 'items': [], 'unsubscribed': 0 }
+    return function('s:toListFactory', [l:data])
+endfunction
+
+function! s:toListFactory(data, source) abort
+    let a:data['unsubscribe'] = callbag#subscribe(
+        \ function('s:toListOnNext', [a:data]),
+        \ function('s:toListOnError', [a:data]),
+        \ function('s:toListOnComplete', [a:data])
+        \ )(a:source)
+    if a:data['done'] | call s:toListUnsubscribe(a:data) | endif
+    return {
+        \ 'unsubscribe': function('s:toListUnsubscribe', [a:data]),
+        \ 'wait': function('s:toListWait', [a:data])
+        \ }
+endfunction
+
+function! s:toListUnsubscribe(data) abort
+    if !has_key(a:data, 'unsubscribe') | return | endif
+    if !a:data['unsubscribed']
+        call a:data['unsubscribe']()
+        let a:data['unsubscribed'] = 1
+        if !a:data['done']
+            let a:data['done'] = 1
+            try
+                throw 'callbag toList() is already unsubscribed.'
+            catch
+                let a:data['error'] = v:exception . ' ' . v:throwpoint
+            endtry
+        endif
+    endif
+endfunction
+
+function! s:toListOnNext(data, item) abort
+    call add(a:data['items'], a:item)
+endfunction
+
+function! s:toListOnError(data, error) abort
+    let a:data['done'] = 1
+    let a:data['error'] = a:error
+    call s:toListUnsubscribe(a:data)
+endfunction
+
+function! s:toListOnComplete(data) abort
+    let a:data['done'] = 1
+    call s:toListUnsubscribe(a:data)
+endfunction
+
+function! s:toListWait(data, ...) abort
+    if a:data['done']
+        if has_key(a:data, 'error')
+            throw a:data['error']
+        else
+            return a:data['items']
+        endif
+    else
+        let l:opt = a:0 > 0 ? copy(a:1) : {}
+        let l:opt['timedout'] = 0
+        let l:opt['sleep'] = get(l:opt, 'sleep', 1)
+        let l:opt['timeout'] = get(l:opt, 'timeout', -1)
+
+        if l:opt['timeout'] > -1
+            let l:opt['timer'] = timer_start(l:opt['timeout'], function('s:toListTimeoutCallback', [l:opt]))
+        endif
+
+        while !a:data['done'] && !l:opt['timedout']
+            exec 'sleep ' . l:opt['sleep'] . 'm'
+        endwhile
+
+        if has_key(l:opt, 'timer')
+            silent! call timer_stop(l:opt['timer'])
+        endif
+
+        if l:opt['timedout']
+            throw 'callbag toList().wait() timedout.'
+        endif
+
+        if has_key(a:data, 'error')
+            throw a:data['error']
+        else
+            return a:data['items']
+        endif
+    endif
+endfunction
+
+function! s:toListTimeoutCallback(opt, ...) abort
+    let a:opt['timedout'] = 1
+endfunction
+" }}}
+
 " throwError() {{{
 function! callbag#throwError(error) abort
     let l:data = { 'error': a:error }
