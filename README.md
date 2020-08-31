@@ -130,7 +130,7 @@ let l:result = callbag#pipe(
     \ )
 
 call timer_start(250, {x->l:result.unsubscribe()})
-let l:items = l:result.wait({ 'sleep': 1, 'timeout': 5000 })
+let l:items = l:result.wait()
 ```
 
 `wait()` is already implemented in an efficient way i.e. if it has already completed
