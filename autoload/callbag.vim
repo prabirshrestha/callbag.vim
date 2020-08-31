@@ -1352,15 +1352,16 @@ function! callbag#createErrorNotification(d) abort
 endfunction
 
 function! callbag#isNextNotification(d) abort
-    return a:d['kind'] == 'N'
+    return a:d['kind'] ==# 'N'
 endfunction
 
 function! callbag#isCompleteNotification(d) abort
-    return a:d['kind'] == 'C'
+    return a:d['kind'] ==# 'C'
 endfunction
 
 function! callbag#isErrorNotification(d) abort
-    return a:d['kind'] == 'E'
+    return a:d['kind'] ==# 'E'
 endfunction
 " }}}
+
 " vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
