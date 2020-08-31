@@ -588,9 +588,7 @@ function! s:toListFactory(data, source) abort
         \ function('s:toListOnError', [a:data]),
         \ function('s:toListOnComplete', [a:data])
         \ )(a:source)
-    if a:data['done']
-        call s:toListUnsubscribe(a:data)
-    endif
+    if a:data['done'] | call s:toListUnsubscribe(a:data) | endif
     return {
         \ 'unsubscribe': function('s:toListUnsubscribe', [a:data]),
         \ 'wait': function('s:toListWait', [a:data])
