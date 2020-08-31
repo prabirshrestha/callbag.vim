@@ -74,6 +74,37 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 **Note** In order to support older version of vim without lambdas, callbag.vim explicitly doesn't use lambdas in the source code.
 
+## Notifications
+
+| Implemented   | Name                                                   |
+|---------------|--------------------------------------------------------|
+| Yes           | createNextNotification(value)                          |
+| Yes           | createErrorNotification(error)                         |
+| Yes           | createCompleteNotification()                           |
+| Yes           | isNextNotification(notification)                       |
+| Yes           | isErrorNotification(notification)                      |
+| Yes           | isCompleteNotification(notification)                   |
+
+`Notification` is a dictionary with `kind`.
+
+### Next Notification
+
+```vim
+let nextNotification = { 'kind': 'N', 'value': 'value' }
+```
+
+### Error Notification
+
+```vim
+let errorNotification = { 'kind': 'E', 'error': 'error' }
+```
+
+### Complete Notification
+
+```vim
+let completeNotification = { 'kind': 'C' }
+```
+
 ## Difference with callbag spec
 
 While the original callbag spec requires payload to be optional - `(type: number, payload?: any) => void`,
