@@ -8,8 +8,8 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 |---------------|--------------------------------------------------------|
 | Yes           | create                                                 |
 | Yes           | empty                                                  |
-| Yes           | fromArray                                              |
 | Yes           | fromEvent                                              |
+| Yes           | fromList                                               |
 | Yes           | fromPromise                                            |
 | Yes           | interval                                               |
 | Yes           | lazy                                                   |
