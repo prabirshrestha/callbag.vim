@@ -575,7 +575,7 @@ function! s:subscribeSourceCallback(data, t, d) abort
     if a:t == 1 && has_key(a:data, 'next') | call a:data['next'](a:d) | endif
     if a:t == 1 || a:t == 0 | call a:data['talkback'](1, callbag#undefined()) | endif
     if a:t == 2 && callbag#isUndefined(a:d) && has_key(a:data, 'complete') | call a:data['complete']() | endif
-    if a:t == 2 && callbag#isUndefined(a:d) && has_key(a:data, 'error') | call a:data['error'](a:d) | endif
+    if a:t == 2 && !callbag#isUndefined(a:d) && has_key(a:data, 'error') | call a:data['error'](a:d) | endif
 endfunction
 
 function! s:subscribeDispose(data, ...) abort
@@ -1335,7 +1335,7 @@ function! s:materializeFSourceCallback(data, t, d) abort
     if a:t == 1
         call a:data['sink'](1, callbag#createNextNotification(a:d))
     elseif a:t == 2
-        call a:data['sink'](1, a:d == callbag#undefined()
+        call a:data['sink'](1, callbag#isUndefined(a:d)
                     \ ? callbag#createCompleteNotification()
                     \ : callbag#createErrorNotification(a:d))
         call a:data['sink'](2, callbag#undefined())
