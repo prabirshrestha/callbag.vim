@@ -219,6 +219,10 @@ function! callbag#demo() abort
         \ })
         \ )
 
+    let l:undefined = callbag#undefined()
+    echom callbag#isUndefined(l:undefined)
+    echom callbag#isUndefined({})
+
     try
         let l:result = callbag#pipe(
             \ callbag#interval(250),
