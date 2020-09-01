@@ -110,7 +110,8 @@ let completeNotification = { 'kind': 'C' }
 While the original callbag spec requires payload to be optional - `(type: number, payload?: any) => void`,
 callbag.vim requires payload to be required. This is primarily due to limition on how vimscript functions works.
 Having optional parameter and using `...` and `a:0` to read the extra args and then use `a:1` makes the code complicated.
-You can use `callbag#undefined()` method to pass undefined.
+You can use `callbag#undefined()` method to pass undefined. `callbag#isUndefined(value)`
+can be used to check if a value is defined or undefined.
 
 ## Example
 
