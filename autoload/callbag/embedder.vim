@@ -7,7 +7,7 @@ function! s:get_git_commit() abort
     endif
 
     let l:git = 'git --git-dir=' . shellescape(s:git_dir) . ' '
-    let l:commit = split(system(l:git . 'rev-parse HEAD'), '\0')[0]
+    let l:commit = substitute(system(l:git . 'rev-parse HEAD'), '\n\+$', '', '') " remove \n and null bytes
     " let l:is_dirty = system(l:git . 'status --porcelain') =~? '\S'
     " return l:commit . (l:is_dirty ? ' (dirty)' : '')
     return l:commit
