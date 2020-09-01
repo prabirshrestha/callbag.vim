@@ -1,12 +1,12 @@
-let s:callbag_undefined_token = '__callbag_undefined__'
+let s:undefined_token = '__callbag_undefined__'
 let s:str_type = type('')
 
 function! callbag#undefined() abort
-    return s:callbag_undefined_token
+    return s:undefined_token
 endfunction
 
 function! callbag#isUndefined(d) abort
-    return type(a:d) == s:str_type && a:d ==# s:callbag_undefined_token
+    return type(a:d) == s:str_type && a:d ==# s:undefined_token
 endfunction
 
 function! s:noop(...) abort
