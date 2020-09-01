@@ -769,7 +769,7 @@ function! s:mergeSourceCallback(data, i, t, d) abort
         call insert(a:data['sourceTalkbacks'], a:d, a:i)
         let a:data['startCount'] += 1
         if a:data['startCount'] == 1 | call a:data['sink'](0, a:data['talkback']) | endif
-    elseif a:t == 2 && a:d != callbag#undefined()
+    elseif a:t == 2 && !callbag#isUndefined(a:d)
         let a:data['ended'] = 1
         let l:j = 0
         while l:j < a:data['n']
@@ -1139,7 +1139,7 @@ function! s:flattenSourceCallback(data, t, d) abort
         let l:InnerSource = a:d
         if a:data['innerTalkback'] != 0 | call a:data['innerTalkback'](2, callbag#undefined()) | endif
         call l:InnerSource(0, function('s:flattenInnerSourceCallback', [a:data]))
-    elseif a:t == 2 && a:d != callbag#undefined()
+    elseif a:t == 2 && !callbag#isUndefined(a:d)
         if a:data['innerTalkback'] != 0 | call a:data['innerTalkback'](2, callbag#undefined()) | endif
         call a:data['outerTalkback'](1, a:d)
     elseif a:t == 2
@@ -1157,7 +1157,7 @@ function! s:flattenInnerSourceCallback(data, t, d) abort
         call a:data['innerTalkback'](1, callbag#undefined())
     elseif a:t == 1
         call a:data['sink'](1, a:d)
-    elseif a:t == 2 && a:d != callbag#undefined()
+    elseif a:t == 2 && !callbag#isUndefined(a:d)
         call a:data['outerTalkback'](2, callbag#undefined())
         call a:data['sink'](2, a:d)
     elseif a:t == 2
