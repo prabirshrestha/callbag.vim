@@ -128,6 +128,7 @@ function! callbag#demo() abort
         \  callbag#interval(350),
         \ ),
         \ callbag#take(10),
+        \ callbag#skip(2),
         \ callbag#subscribe({
         \   'next':{x->s:log('next '. x[0] . ' ' . x[1])},
         \   'complete': {->s:log('complete')},
@@ -252,3 +253,5 @@ function! s:promiseWait(ms)
     let s:Promise = s:V.import('Async.Promise')
     return s:Promise.new({resolve -> timer_start(a:ms, resolve)})
 endfunction
+
+

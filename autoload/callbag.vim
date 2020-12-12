@@ -367,6 +367,41 @@ function! s:takeSourceCallback(data, t, d) abort
 endfunction
 " }}}
 
+" skip() {{{
+function! callbag#skip(max) abort
+    let l:data = { 'max': a:max }
+    return function('s:skipMax', [l:data])
+endfunction
+
+function! s:skipMax(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:skipMaxSource', [a:data])
+endfunction
+
+function! s:skipMaxSource(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['skipped'] = 0
+    call a:data['source'](0, function('s:skipSouceCallback', [a:data]))
+endfunction
+
+function! s:skipSouceCallback(data, t, d) abort
+    if a:t == 0
+        let a:data['talkback'] = a:d
+        call a:data['sink'](a:t, a:d)
+    elseif a:t == 1
+        if a:data['skipped'] < a:data['max']
+            let a:data['skipped'] = a:data['skipped'] + 1
+            call a:data['talkback'](1, callbag#undefined())
+        else
+            call a:data['sink'](a:t, a:d)
+        endif
+    else
+        call a:data['sink'](a:t, a:d)
+    endif
+endfunction
+" }}}
+
 " map() {{{
 function! callbag#map(F) abort
     let l:data = { 'f': a:F }
