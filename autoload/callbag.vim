@@ -1447,6 +1447,8 @@ function! s:spawn(data, start, sink) abort
         let a:data['jobid'] = ch_info(l:channel)['id']
     endif
     call a:sink(0, function('s:spawnSinkCallback', [a:data]))
+    let l:startdata = { 'jobid': a:data['jobid'] }
+    call a:sink(1, { 'event': 'start', 'data': l:startdata })
 endfunction
 
 function! s:spawnSinkCallback(data, t, ...) abort
