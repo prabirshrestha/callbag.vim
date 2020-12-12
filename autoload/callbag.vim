@@ -1447,8 +1447,20 @@ function! s:spawn(data, start, sink) abort
         let a:data['jobid'] = ch_info(l:channel)['id']
     endif
     call a:sink(0, function('s:spawnSinkCallback', [a:data]))
-    let l:startdata = { 'jobid': a:data['jobid'] }
-    call a:sink(1, { 'event': 'start', 'data': l:startdata })
+    if get(a:data['opt'], 'start', 1)
+        let l:startdata = { 'jobid': a:data['jobid'] }
+        if get(a:data['opt'], 'pid', 0)
+            if has('nvim')
+                let l:startdata['pid'] = jobpid(a:data['jobid'])
+            else
+                let l:jobinfo = job_info(l:job)
+                if type(l:jobinfo) == type({}) && has_key(l:jobinfo, 'process')
+                    let l:startdata['pid'] = l:jobinfo['process']
+                endif
+            endif
+        endif
+        call a:sink(1, { 'event': 'start', 'data': l:startdata })
+    endif
 endfunction
 
 function! s:spawnSinkCallback(data, t, ...) abort
