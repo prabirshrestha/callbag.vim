@@ -31,6 +31,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 |---------------|--------------------------------------------------------|
 | Yes           | makeSubject                                            |
 | Yes           | share                                                  |
+| No            | makeBehaviorSubject                                    |
 
 ## Operators
 
@@ -53,9 +54,20 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | takeUntil                                              |
 | Yes           | takeWhile                                              |
 | Yes           | tap                                                    |
+| No            | buffer                                                 |
+| No            | bufferTime                                             |
+| No            | bufferUntil                                            |
 | No            | dematerialize                                          |
 | No            | concatWith                                             |
+| No            | find                                                   |
+| No            | first                                                  |
+| No            | graceful                                               |
+| No            | last                                                   |
+| No            | latest                                                 |
+| No            | mapWhen                                                |
 | No            | mergeWith                                              |
+| No            | pausable                                               |
+| No            | repeat                                                 |
 | No            | rescue                                                 |
 | No            | retry                                                  |
 | No            | skip                                                   |
