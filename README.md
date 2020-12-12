@@ -80,7 +80,8 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 |---------------|--------------------------------------------------------|
 | Yes           | spawn                                                  |
 
-`spawn` is currently only implemented for Vim8. It doesn't support `stdin` yet.
+`spawn` uses `job_start` in Vim8+ and `jobstart` in Neovim.
+`stdin` is currently not supported.
 
 ## Utils
 
