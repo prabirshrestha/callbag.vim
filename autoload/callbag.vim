@@ -1473,7 +1473,7 @@ function! s:spawnCloseCb(data, id) abort
     endif
 endfunction
 
-function! s:spawnNotifyExit(data)
+function! s:spawnNotifyExit(data) abort
     if get(a:data['opt'], 'exit', 1)
         call a:data['sink'](1, { 'event': 'exit', 'data': a:data['exitcode'] })
     endif
