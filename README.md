@@ -49,6 +49,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | materialize                                            |
 | Yes           | merge                                                  |
 | Yes           | scan                                                   |
+| Yes           | skip                                                   |
 | Yes           | switchMap                                              |
 | Yes           | take                                                   |
 | Yes           | takeUntil                                              |
@@ -70,7 +71,6 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | No            | repeat                                                 |
 | No            | rescue                                                 |
 | No            | retry                                                  |
-| No            | skip                                                   |
 | No            | throttle                                               |
 | No            | timeout                                                |
 
