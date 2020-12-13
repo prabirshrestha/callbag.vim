@@ -1413,7 +1413,8 @@ endfunction
 "   \ 'exit': 1,
 "   \ 'pid': 1,
 "   \ 'failOnNonZeroExitCode': 1,
-"   \ 'normalize': 'raw' | 'string' | 'array', (defaults to raw)
+"   \ 'normalize': 'raw' | 'string' | 'array', (defaults to raw),
+"   \ 'env': {},
 "   \ })
 function! callbag#spawn(cmd, ...) abort
     let l:data = { 'cmd': a:cmd, 'opt': a:0 > 0 ? copy(a:000[0]) : {} }
@@ -1437,15 +1438,17 @@ function! s:spawn(data, start, sink) abort
         endif
         if get(a:data['opt'], 'stdout', 1) | let a:data['jobopt']['on_stdout'] = function('s:spawnNeovimOnStdout', [a:data]) | endif
         if get(a:data['opt'], 'stderr', 1) | let a:data['jobopt']['on_stderr'] = function('s:spawnNeovimOnStderr', [a:data]) | endif
+        if has_key(a:data['opt'], 'env') | let a:data['jobopt']['env'] = a:data['opt']['env'] | endif
         let a:data['jobid'] = jobstart(a:data['cmd'], a:data['jobopt'])
     else
         let a:data['jobopt'] = {
             \ 'exit_cb': function('s:spawnVimExitCb', [a:data]),
             \ 'close_cb': function('s:spawnVimCloseCb', [a:data]),
             \ }
+        if has('patch-8.1.350') | let a:data['jobopt']['noblock'] = 1 | endif
         if get(a:data['opt'], 'stdout', 1) | let a:data['jobopt']['out_cb'] = function('s:spawnVimOutCb', [a:data]) | endif
         if get(a:data['opt'], 'stderr', 1) | let a:data['jobopt']['err_cb'] = function('s:spawnVimErrCb', [a:data]) | endif
-        if has('patch-8.1.350') | let a:data['jobopt']['noblock'] = 1 | endif
+        if has_key(a:data['opt'], 'env') | let a:data['jobopt']['env'] = a:data['opt']['env'] | endif
         if l:normalize ==# 'array'
             let a:data['normalize'] = function('s:spawnNormalizeVimArray')
         else
