@@ -1638,7 +1638,7 @@ endfunction
 function! s:spawnNotifyExit(data) abort
     if a:data['dispose'] | return | end
     if has_key(a:data, 'stdinDispose') | call a:data['stdinDispose']() | endif
-    if has_key(a:data, 'stdinError')
+    if a:data['failOnStdinError'] && has_key(a:data, 'stdinError')
         call a:data['error'](a:data['stdinError'])
         return
     endif
