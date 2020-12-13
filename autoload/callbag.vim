@@ -1408,7 +1408,7 @@ endfunction
 
 " spawn {{{
 function! callbag#spawn(cmd, ...) abort
-    let l:data = { 'cmd': a:cmd, 'opt': a:0 > 0 ? a:000[0] : {} }
+    let l:data = { 'cmd': a:cmd, 'opt': a:0 > 0 ? copy(a:000[0]) : {} }
     return function('s:spawn', [l:data])
 endfunction
 
@@ -1417,30 +1417,31 @@ function! s:spawn(data, start, sink) abort
     let a:data['sink'] = a:sink
     let a:data['close'] = 0
     let a:data['exit'] = 0
+    let l:normalize = get(a:data['opt'], 'normalize', 'raw')
     if has('nvim')
         let a:data['jobopt'] = {
-            \ 'on_exit': function('s:spawnNeovimOnExit', [a:data])
+            \ 'on_exit': function('s:spawnNeovimOnExit', [a:data]),
             \ }
-        if get(a:data['opt'], 'stdout', 1)
-            let a:data['jobopt']['on_stdout'] = function('s:spawnNeovimOnStdout', [a:data])
+        if l:normalize ==# 'string'
+            let a:data['normalize'] = function('s:spawnNormalizeNeovimString')
+        else
+            let a:data['normalize'] = function('s:spawnNormalizeRaw')
         endif
-        if get(a:data['opt'], 'stderr', 1)
-            let a:data['jobopt']['on_stderr'] = function('s:spawnNeovimOnStderr', [a:data])
-        endif
+        if get(a:data['opt'], 'stdout', 1) | let a:data['jobopt']['on_stdout'] = function('s:spawnNeovimOnStdout', [a:data]) | endif
+        if get(a:data['opt'], 'stderr', 1) | let a:data['jobopt']['on_stderr'] = function('s:spawnNeovimOnStderr', [a:data]) | endif
         let a:data['jobid'] = jobstart(a:data['cmd'], a:data['jobopt'])
     else
         let a:data['jobopt'] = {
             \ 'exit_cb': function('s:spawnVimExitCb', [a:data]),
             \ 'close_cb': function('s:spawnVimCloseCb', [a:data]),
             \ }
-        if get(a:data['opt'], 'stdout', 1)
-            let a:data['jobopt']['out_cb'] = function('s:spawnVimOutCb', [a:data])
-        endif
-        if get(a:data['opt'], 'stderr', 1)
-            let a:data['jobopt']['err_cb'] = function('s:spawnVimErrCb', [a:data])
-        endif
-        if has('patch-8.1.350')
-            let a:data['jobopt']['noblock'] = 1
+        if get(a:data['opt'], 'stdout', 1) | let a:data['jobopt']['out_cb'] = function('s:spawnVimOutCb', [a:data]) | endif
+        if get(a:data['opt'], 'stderr', 1) | let a:data['jobopt']['err_cb'] = function('s:spawnVimErrCb', [a:data]) | endif
+        if has('patch-8.1.350') | let a:data['jobopt']['noblock'] = 1 | endif
+        if l:normalize ==# 'array'
+            let a:data['normalize'] = function('s:spawnNormalizeVimArray')
+        else
+            let a:data['normalize'] = function('s:spawnNormalizeRaw')
         endif
         let l:job = job_start(a:data['cmd'], a:data['jobopt'])
         let l:channel = job_getchannel(l:job)
@@ -1463,6 +1464,20 @@ function! s:spawn(data, start, sink) abort
     endif
 endfunction
 
+function! s:spawnNormalizeRaw(data) abort
+    return a:data
+endfunction
+
+function! s:spawnNormalizeNeovimString(data) abort
+    " convert array to string since neovim uses array split by \n by default
+    return join(a:data, "\n")
+endfunction
+
+function! s:spawnNormalizeVimArray(data) abort
+    " convert string to array since vim uses string by default.
+    return split(a:data, "\n", 1)
+endfunction
+
 function! s:spawnSinkCallback(data, t, ...) abort
     if a:t == 2
         let l:jobid = get(a:data, 'jobid', 0)
@@ -1483,11 +1498,11 @@ function! s:spawnSinkCallback(data, t, ...) abort
 endfunction
 
 function! s:spawnNeovimOnStdout(data, id, d, event) abort
-    call a:data['sink'](1, { 'event': 'stdout', 'data': a:d })
+    call a:data['sink'](1, { 'event': 'stdout', 'data': a:data['normalize'](a:d) })
 endfunction
 
 function! s:spawnNeovimOnStderr(data, id, d, event) abort
-    call a:data['sink'](1, { 'event': 'stderr', 'data': a:d })
+    call a:data['sink'](1, { 'event': 'stderr', 'data': a:data['normalize'](a:d) })
 endfunction
 
 function! s:spawnNeovimOnExit(data, id, d, event) abort
@@ -1498,11 +1513,11 @@ function! s:spawnNeovimOnExit(data, id, d, event) abort
 endfunction
 
 function! s:spawnVimOutCb(data, id, d, ...) abort
-    call a:data['sink'](1, { 'event': 'stdout', 'data': a:d })
+    call a:data['sink'](1, { 'event': 'stdout', 'data': a:data['normalize'](a:d) })
 endfunction
 
 function! s:spawnVimErrCb(data, id, d, ...) abort
-    call a:data['sink'](1, { 'event': 'stderr', 'data': a:d })
+    call a:data['sink'](1, { 'event': 'stderr', 'data': a:data['normalize'](a:d) })
 endfunction
 
 function! s:spawnVimExitCb(data, id, d) abort
