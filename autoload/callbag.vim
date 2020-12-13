@@ -1410,10 +1410,12 @@ endfunction
 " let s:Stdin = callbag#makeSubject()
 " call callbag#spawn(['bash', '-c', 'read i; echo $i'], {
 "   \ 'stdin': s:Stdin,
-"   \ 'stdout': 1,
-"   \ 'stderr': 1,
-"   \ 'exit': 1,
-"   \ 'pid': 1,
+"   \ 'stdout': 0,
+"   \ 'stderr': 0,
+"   \ 'exit': 0,
+"   \ 'start': 0, " when job starts before subscribing to stdin
+"   \ 'ready': 0, " when job starts and after subscribing to stdin
+"   \ 'pid': 0,
 "   \ 'failOnNonZeroExitCode': 1,
 "   \ 'failOnStdinError': 1,
 "   \ 'normalize': 'raw' | 'string' | 'array', (defaults to raw),
@@ -1446,8 +1448,8 @@ function! s:spawnCreate(data, next, error, complete) abort
         else
             let a:data['normalize'] = function('s:spawnNormalizeRaw')
         endif
-        if get(a:data['opt'], 'stdout', 1) | let a:data['jobopt']['on_stdout'] = function('s:spawnNeovimOnStdout', [a:data]) | endif
-        if get(a:data['opt'], 'stderr', 1) | let a:data['jobopt']['on_stderr'] = function('s:spawnNeovimOnStderr', [a:data]) | endif
+        if get(a:data['opt'], 'stdout', 0) | let a:data['jobopt']['on_stdout'] = function('s:spawnNeovimOnStdout', [a:data]) | endif
+        if get(a:data['opt'], 'stderr', 0) | let a:data['jobopt']['on_stderr'] = function('s:spawnNeovimOnStderr', [a:data]) | endif
         if has_key(a:data['opt'], 'env') | let a:data['jobopt']['env'] = a:data['opt']['env'] | endif
         let a:data['jobid'] = jobstart(a:data['cmd'], a:data['jobopt'])
     else
@@ -1455,8 +1457,8 @@ function! s:spawnCreate(data, next, error, complete) abort
             \ 'exit_cb': function('s:spawnVimExitCb', [a:data]),
             \ 'close_cb': function('s:spawnVimCloseCb', [a:data]),
             \ }
-        if get(a:data['opt'], 'stdout', 1) | let a:data['jobopt']['out_cb'] = function('s:spawnVimOutCb', [a:data]) | endif
-        if get(a:data['opt'], 'stderr', 1) | let a:data['jobopt']['err_cb'] = function('s:spawnVimErrCb', [a:data]) | endif
+        if get(a:data['opt'], 'stdout', 0) | let a:data['jobopt']['out_cb'] = function('s:spawnVimOutCb', [a:data]) | endif
+        if get(a:data['opt'], 'stderr', 0) | let a:data['jobopt']['err_cb'] = function('s:spawnVimErrCb', [a:data]) | endif
         if has_key(a:data['opt'], 'env') | let a:data['jobopt']['env'] = a:data['opt']['env'] | endif
         if l:normalize ==# 'array'
             let a:data['normalize'] = function('s:spawnNormalizeVimArray')
@@ -1485,7 +1487,7 @@ function! s:spawnCreate(data, next, error, complete) abort
         endif
     endif
 
-    if get(a:data['opt'], 'start', 1)
+    if get(a:data['opt'], 'start', 0)
         let l:startdata = { 'id': a:data['jobid'], 'state': a:data['state'] }
         call a:data['next']({ 'event': 'start', 'data': l:startdata })
     endif
@@ -1501,7 +1503,7 @@ function! s:spawnCreate(data, next, error, complete) abort
             \ )
     endif
 
-    if get(a:data['opt'], 'ready', 1)
+    if get(a:data['opt'], 'ready', 0)
         let l:readydata = { 'id': a:data['jobid'], 'state': a:data['state'] }
         if has_key(a:data, 'pid') | let l:readydata['pid'] = a:data['pid'] | endif
         call a:data['next']({ 'event': 'ready', 'data': l:readydata })
@@ -1556,12 +1558,12 @@ endfunction
 
 function! s:spawnNeovimStdinError(data, x) abort
     let a:data['stdinError'] = a:x
-    if a:data['failOnStdinError'] | call s:spawnJobStop(a:data) | endif
+    if get(a:data['opt'], 'failOnStdinError', 1) | call s:spawnJobStop(a:data) | endif
 endfunction
 
 function! s:spawnVimStdinError(data, x) abort
     let a:data['stdinError'] = a:x
-    if a:data['failOnStdinError'] | call s:spawnJobStop(a:data) | endif
+    if get(a:data['opt'], 'failOnStdinError', 1) | call s:spawnJobStop(a:data) | endif
 endfunction
 
 function! s:spawnNeovimStdinComplete(data) abort
@@ -1638,11 +1640,11 @@ endfunction
 function! s:spawnNotifyExit(data) abort
     if a:data['dispose'] | return | end
     if has_key(a:data, 'stdinDispose') | call a:data['stdinDispose']() | endif
-    if a:data['failOnStdinError'] && has_key(a:data, 'stdinError')
+    if get(a:data['opt'], 'failOnStdinError', 1) && has_key(a:data, 'stdinError')
         call a:data['error'](a:data['stdinError'])
         return
     endif
-    if get(a:data['opt'], 'exit', 1)
+    if get(a:data['opt'], 'exit', 0)
         call a:data['next']({ 'event': 'exit', 'data': a:data['exitcode'], 'state': a:data['state'] })
     endif
     if get(a:data['opt'], 'failOnNonZeroExitCode', 1) && a:data['exitcode'] != 0
