@@ -74,6 +74,14 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | No            | throttle                                               |
 | No            | timeout                                                |
 
+## Vim Job and Channels
+
+| Implemented   | Name                                                   |
+|---------------|--------------------------------------------------------|
+| Yes           | spawn                                                  |
+
+`spawn` uses `job_start` in Vim8+ and `jobstart` in Neovim.
+
 ## Utils
 
 | Implemented   | Name                                                   |

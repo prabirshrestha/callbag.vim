@@ -236,6 +236,18 @@ function! callbag#demo() abort
         echom v:exception . ' ' . v:throwpoint
     endtry
 
+    " let s:Stdin = callbag#makeSubject()
+    " call callbag#pipe(
+    "     \ callbag#spawn(['bash', '-c', 'read i; echo $i'], { 'stdin': s:Stdin }),
+    "     \ callbag#subscribe({
+    "     \   'next':{x->s:log(['next', x])},
+    "     \   'complete':{->s:log('complete')},
+    "     \   'error':{x->s:log(['error', x])},
+    "     \ }),
+    "     \ )
+    " call s:Stdin(1, 'hello')
+    " call s:Stdin(2, callbag#undefined())
+
     " Plug 'vim-jp/vital.vim'
     "
     " call callbag#pipe(
@@ -253,5 +265,3 @@ function! s:promiseWait(ms)
     let s:Promise = s:V.import('Async.Promise')
     return s:Promise.new({resolve -> timer_start(a:ms, resolve)})
 endfunction
-
-
