@@ -1449,7 +1449,6 @@ function! s:spawn(data, start, sink) abort
             \ 'exit_cb': function('s:spawnVimExitCb', [a:data]),
             \ 'close_cb': function('s:spawnVimCloseCb', [a:data]),
             \ }
-        if has('patch-8.1.350') | let a:data['jobopt']['noblock'] = 1 | endif
         if get(a:data['opt'], 'stdout', 1) | let a:data['jobopt']['out_cb'] = function('s:spawnVimOutCb', [a:data]) | endif
         if get(a:data['opt'], 'stderr', 1) | let a:data['jobopt']['err_cb'] = function('s:spawnVimErrCb', [a:data]) | endif
         if has_key(a:data['opt'], 'env') | let a:data['jobopt']['env'] = a:data['opt']['env'] | endif
@@ -1458,9 +1457,11 @@ function! s:spawn(data, start, sink) abort
         else
             let a:data['normalize'] = function('s:spawnNormalizeRaw')
         endif
+        if has('patch-8.1.350') | let a:data['jobopt']['noblock'] = 1 | endif
+        let a:data['stdinBuffer'] = ''
         let l:job = job_start(a:data['cmd'], a:data['jobopt'])
-        let l:channel = job_getchannel(l:job)
-        let a:data['jobid'] = ch_info(l:channel)['id']
+        let a:data['jobchannel'] = job_getchannel(l:job)
+        let a:data['jobid'] = ch_info(a:data['jobchannel'])['id']
     endif
     call a:sink(0, function('s:spawnSinkCallback', [a:data]))
     if get(a:data['opt'], 'start', 1)
@@ -1494,12 +1495,32 @@ function! s:spawnNeovimStdinNext(data, x) abort
 endfunction
 
 function! s:spawnVimStdinNext(data, x) abort
+    " Ref: https://groups.google.com/d/topic/vim_dev/UNNulkqb60k/discussion
+    let a:data['stdinBuffer'] .= a:x
+    call s:spawnVimStdinNextFlushBuffer(a:data)
+endfunction
+
+function! s:spawnVimStdinNextFlushBuffer(data) abort
+    " https://github.com/vim/vim/issues/2548
+    " https://github.com/natebosch/vim-lsc/issues/67#issuecomment-357469091
+    sleep 1m
+    if len(a:data['stdinBuffer']) <= 4096
+        call ch_sendraw(a:data['jobchannel'], a:data['stdinBuffer'])
+        let a:data['stdinBuffer'] = ''
+    else
+        let l:to_send = a:data['stdinBuffer'][:4095]
+        let a:data['stdinBuffer'] = a:data['stdinBuffer'][4096:]
+        call ch_sendraw(a:data['jobchannel'], l:to_send)
+        call timer_start(1, function('s:spawnVimStdinNextFlushBuffer', [a:data]))
+    endif
 endfunction
 
 function! s:spawnNeovimStdinError(data, x) abort
+    " TODO: jobstop and error out?
 endfunction
 
 function! s:spawnVimStdinError(data, x) abort
+    " TODO: jobstop and error out?
 endfunction
 
 function! s:spawnNeovimStdinComplete(data) abort
@@ -1507,6 +1528,13 @@ function! s:spawnNeovimStdinComplete(data) abort
 endfunction
 
 function! s:spawnVimStdinComplete(data) abort
+   " There is no easy way to know when ch_sendraw() finishes writing data
+   " on a non-blocking channels -- has('patch-8.1.889') -- and because of
+   " this, we cannot safely call ch_close_in().
+    while len(a:data['stdinBuffer']) != 0
+        sleep 1m
+    endwhile
+    call ch_close_in(a:data['jobchannel'])
 endfunction
 
 function! s:spawnNormalizeRaw(data) abort
