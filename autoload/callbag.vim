@@ -1407,7 +1407,9 @@ endfunction
 " }}}
 
 " spawn {{{
-" call callbag#spawn(['bash', '-c', 'ls'], {
+" let s:Stdin = callbag#makeSubject()
+" call callbag#spawn(['bash', '-c', 'read i; echo $i'], {
+"   \ 'stdin': s:Stdin,
 "   \ 'stdout': 1,
 "   \ 'stderr': 1,
 "   \ 'exit': 1,
@@ -1416,6 +1418,8 @@ endfunction
 "   \ 'normalize': 'raw' | 'string' | 'array', (defaults to raw),
 "   \ 'env': {},
 "   \ })
+"   call s:Stdin(1, 'hi')
+"   call s:Stdin(2, callbag#undefined())
 function! callbag#spawn(cmd, ...) abort
     let l:data = { 'cmd': a:cmd, 'opt': a:0 > 0 ? copy(a:000[0]) : {} }
     return function('s:spawn', [l:data])
@@ -1473,6 +1477,36 @@ function! s:spawn(data, start, sink) abort
         endif
         call a:sink(1, { 'event': 'start', 'data': l:startdata })
     endif
+    if has_key(a:data['opt'], 'stdin')
+        let a:data['stdinDispose'] = callbag#pipe(
+            \ a:data['opt']['stdin'],
+            \ callbag#subscribe({
+            \   'next': (has('nvim') ? function('s:spawnNeovimStdinNext', [a:data]) : function('s:spawnVimStdinNext', [a:data])),
+            \   'error': (has('nvim') ? function('s:spawnNeovimStdinError', [a:data]) : function('s:spawnVimStdinError', [a:data])),
+            \   'complete': (has('nvim') ? function('s:spawnNeovimStdinComplete', [a:data]) : function('s:spawnVimStdinComplete', [a:data])),
+            \ }),
+            \ )
+    endif
+endfunction
+
+function! s:spawnNeovimStdinNext(data, x) abort
+    call jobsend(a:data['jobid'], a:x)
+endfunction
+
+function! s:spawnVimStdinNext(data, x) abort
+endfunction
+
+function! s:spawnNeovimStdinError(data, x) abort
+endfunction
+
+function! s:spawnVimStdinError(data, x) abort
+endfunction
+
+function! s:spawnNeovimStdinComplete(data) abort
+    call chanclose(a:data['jobid'], 'stdin')
+endfunction
+
+function! s:spawnVimStdinComplete(data) abort
 endfunction
 
 function! s:spawnNormalizeRaw(data) abort
@@ -1555,6 +1589,7 @@ function! s:spawnNotifyExit(data) abort
     if get(a:data['opt'], 'exit', 1)
         call a:data['sink'](1, { 'event': 'exit', 'data': a:data['exitcode'] })
     endif
+    if has_key(a:data, 'stdinDispose') | call a:data['stdinDispose']() | endif
     if get(a:data['opt'], 'failOnNonZeroExitCode', 1) && a:data['exitcode'] != 0
         call a:data['sink'](2, 'Spawn for job ' . a:data['jobid'] .' failed with exit code ' . a:data['exitcode'] . '. ')
     else
