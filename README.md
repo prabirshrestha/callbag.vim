@@ -81,7 +81,6 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | spawn                                                  |
 
 `spawn` uses `job_start` in Vim8+ and `jobstart` in Neovim.
-`stdin` is currently not supported.
 
 ## Utils
 

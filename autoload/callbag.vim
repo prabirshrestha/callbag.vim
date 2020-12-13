@@ -1419,7 +1419,7 @@ endfunction
 "   \ 'env': {},
 "   \ })
 "   call s:Stdin(1, 'hi')
-"   call s:Stdin(2, callbag#undefined())
+"   call s:Stdin(2, callbag#undefined()) " requried to close stdin
 function! callbag#spawn(cmd, ...) abort
     let l:data = { 'cmd': a:cmd, 'opt': a:0 > 0 ? copy(a:000[0]) : {} }
     return function('s:spawn', [l:data])
