@@ -1407,6 +1407,14 @@ endfunction
 " }}}
 
 " spawn {{{
+" call callbag#spawn(['bash', '-c', 'ls'], {
+"   \ 'stdout': 1,
+"   \ 'stderr': 1,
+"   \ 'exit': 1,
+"   \ 'pid': 1,
+"   \ 'failOnNonZeroExitCode': 1,
+"   \ 'normalize': 'raw' | 'string' | 'array', (defaults to raw)
+"   \ })
 function! callbag#spawn(cmd, ...) abort
     let l:data = { 'cmd': a:cmd, 'opt': a:0 > 0 ? copy(a:000[0]) : {} }
     return function('s:spawn', [l:data])
