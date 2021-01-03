@@ -1206,6 +1206,15 @@ function! s:flattenInnerSourceCallback(data, t, d) abort
 endfunction
 " }}}
 
+" flatMap() {{{
+function! callbag#flatMap(F) abort
+    return callbag#operate(
+        \ lsp#callbag#map(a:F),
+        \ lsp#callbag#flatten(),
+        \ )
+endfunction
+" }}}
+
 " scan() {{{
 function! callbag#scan(reducer, seed) abort
     let l:data = { 'reducer': a:reducer, 'seed': a:seed }

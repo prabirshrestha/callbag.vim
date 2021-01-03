@@ -43,6 +43,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | delay                                                  |
 | Yes           | distinctUntilChanged                                   |
 | Yes           | filter                                                 |
+| Yes           | flatMap                                                |
 | Yes           | flatten                                                |
 | Yes           | group                                                  |
 | Yes           | map                                                    |
