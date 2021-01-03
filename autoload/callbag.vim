@@ -1243,6 +1243,36 @@ function! s:scanSourceCallback(data, t, d) abort
 endfunction
 " }}}
 
+" reduce() {{{
+function! callbag#reduce(reducer, seed) abort
+    let l:data = { 'reducer': a:reducer, 'seed': a:seed }
+    return function('s:reduceSource', [l:data])
+endfunction
+
+function! s:reduceSource(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:reduceFactory', [a:data])
+endfunction
+
+function! s:reduceFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['acc'] = a:data['seed']
+    call a:data['source'](0, function('s:reduceSourceCallback', [a:data]))
+endfunction
+
+function! s:reduceSourceCallback(data, t, d) abort
+    if a:t == 1
+        let a:data['acc'] = a:data['reducer'](a:data['acc'], a:d)
+    elseif a:t == 2 && callbag#isUndefined(a:d)
+        call a:data['sink'](1, a:data['acc'])
+        call a:data['sink'](2, callbag#undefined())
+    else
+        call a:data['sink'](a:t, a:d)
+    endif
+endfunction
+" }}}
+
 " switchMap() {{{
 function! callbag#switchMap(makeSource, ...) abort
     let l:data = { 'makeSource': a:makeSource }
