@@ -49,6 +49,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | map                                                    |
 | Yes           | materialize                                            |
 | Yes           | merge                                                  |
+| Yes           | reduce                                                 |
 | Yes           | scan                                                   |
 | Yes           | skip                                                   |
 | Yes           | switchMap                                              |

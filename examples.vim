@@ -113,6 +113,11 @@ function! callbag#demo() abort
         \ callbag#forEach({x->s:log(x)}),
         \ )
     call callbag#pipe(
+        \ callbag#of(1,2,3,4,5),
+        \ callbag#reduce({prev, x-> prev + x}, 0),
+        \ callbag#forEach({x->s:log(x)}),
+        \ )
+    call callbag#pipe(
         \ callbag#concat(
         \  callbag#of(1,2,3),
         \  callbag#of(4,5,6),
