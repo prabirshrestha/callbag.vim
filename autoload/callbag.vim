@@ -1209,8 +1209,8 @@ endfunction
 " flatMap() {{{
 function! callbag#flatMap(F) abort
     return callbag#operate(
-        \ lsp#callbag#map(a:F),
-        \ lsp#callbag#flatten(),
+        \ callbag#map(a:F),
+        \ callbag#flatten(),
         \ )
 endfunction
 " }}}
