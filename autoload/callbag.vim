@@ -464,7 +464,7 @@ function! callbag#fromEvent(events, ...) abort
     if a:0 > 0
         let l:data['augroup'] = a:1
     else
-        let l:data['augroup'] = '__callbag_fromEvent_prefix_' + s:event_prefix_index + '__'
+        let l:data['augroup'] = '__callbag_fromEvent_prefix_' . s:event_prefix_index . '__'
         let s:event_prefix_index = s:event_prefix_index + 1
     endif
     return function('s:fromEventFactory', [l:data])
