@@ -109,20 +109,23 @@ endfunction
 " create {{{
 " Create a source similar to rxjs observable creation.
 " https://www.learnrxjs.io/learn-rxjs/operators/creation/create
-" @param next - next fn
-" @param error - error fn
-" @param complete - complete fn
-" @return callbag source
+" @param fn - optional source creator function (producer)
 " @example
+"   " emits next value message
 "   callbag#create({next, error, complete->next('value')})
+"   " emits error message
 "   callbag#create({next, error, complete->error('error')})
+"   " emits completion message
 "   callbag#create({next, error, complete->complete()})
 "
-"   function! s:create_with_dispose(next, error, complete) abort
+"   " when a producer returns a function, it is treated as a cleanup function
+"   function! s:producer_with_cleanup_logic(next, error, complete) abort
 "       let l:timer = timer_start(100, {->a:next('value')}, {'repeat': -1})
 "       return {-> timer_stop(l:timer)}
 "   endfunction
-"   callbag#create(function('s:create_with_dispose'))
+"   callbag#create(function('s:producer_with_cleanup_logic'))
+"
+"   callbag#create() " equivalent to rxjs never(). never emits the completion message.
 function! callbag#create(...) abort
     let l:ctx = {}
     if a:0 > 0
