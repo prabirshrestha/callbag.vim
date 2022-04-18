@@ -125,10 +125,15 @@ endfunction
 "   endfunction
 "   callbag#create(function('s:producer_with_cleanup_logic'))
 "
-"   " When a noop producer is passed, it is treated as rxjs never() and never emits the completion message
+"   " When a noop producer is passed, it never emits the completion message.
+"   " This behaves similar to rxjs never().
 "   function! s:noop() abort
 "   endfunction
 "   callbag#create(function('s:noop'))
+"
+"   " When a producer is not passed or is not a function, it emits no value and immediately emits the completion message.
+"   " This behaves similar to rxjs empty().
+"   callbag#create()
 function! callbag#create(...) abort
     let l:ctx = {}
     if a:0 > 0
