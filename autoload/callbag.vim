@@ -106,52 +106,63 @@ endfunction
 " }}}
 
 " create() {{{
+" create {{{
+" Create a source similar to rxjs observable creation.
+" https://www.learnrxjs.io/learn-rxjs/operators/creation/create
+" @param next - next fn
+" @param error - error fn
+" @param complete - complete fn
+" @return callbag source
+" @example
+"   callbag#create({next, error, complete->next('value')})
+"   callbag#create({next, error, complete->error('error')})
+"   callbag#create({next, error, complete->complete()})
 function! callbag#create(...) abort
-    let l:data = {}
+    let l:ctx = {}
     if a:0 > 0
-        let l:data['prod'] = a:1
+        let l:ctx['prod'] = a:1
     endif
-    return function('s:createProd', [l:data])
+    return function('s:createFn', [l:ctx])
 endfunction
 
-function! s:createProd(data, start, sink) abort
+function! s:createFn(ctx, start, sink) abort
     if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    if !has_key(a:data, 'prod') || type(a:data['prod']) != type(function('s:noop'))
+    let a:ctx['sink'] = a:sink
+    if !has_key(a:ctx, 'prod') || type(a:ctx['prod']) != type(function('s:noop'))
         call a:sink(0, function('s:noop'))
         call a:sink(2, callbag#undefined())
         return
     endif
-    let a:data['end'] = 0
-    call a:sink(0, function('s:createSinkCallback', [a:data]))
-    if a:data['end'] | return | endif
-    let a:data['clean'] = a:data['prod'](function('s:createNext', [a:data]), function('s:createError', [a:data]), function('s:createComplete', [a:data]))
+    let a:ctx['end'] = 0
+    call a:sink(0, function('s:createSinkFn', [a:ctx]))
+    if a:ctx['end'] | return | endif
+    let a:ctx['clean'] = a:ctx['prod'](function('s:createNext', [a:ctx]), function('s:createError', [a:ctx]), function('s:createComplete', [a:ctx]))
 endfunction
 
-function! s:createSinkCallback(data, t, ...) abort
-    if !a:data['end']
-        let a:data['end'] = (a:t == 2)
-        if a:data['end'] && has_key(a:data, 'clean') && type(a:data['clean']) == type(function('s:noop'))
-            call a:data['clean']()
+function! s:createSinkFn(ctx, t, ...) abort
+    if !a:ctx['end']
+        let a:ctx['end'] = (a:t == 2)
+        if a:ctx['end'] && has_key(a:ctx, 'clean') && type(a:ctx['clean']) == type(function('s:noop'))
+            call a:ctx['clean']()
         endif
     endif
 endfunction
 
-function! s:createNext(data, d) abort
-    if !a:data['end'] | call a:data['sink'](1, a:d) | endif
+function! s:createNext(ctx, d) abort
+    if !a:ctx['end'] | call a:ctx['sink'](1, a:d) | endif
 endfunction
 
-function! s:createError(data, e) abort
-    if !a:data['end'] && !callbag#isUndefined(a:e)
-        let a:data['end'] = 1
-        call a:data['sink'](2, a:e)
+function! s:createError(ctx, e) abort
+    if !a:ctx['end'] && !callbag#isUndefined(a:e)
+        let a:ctx['end'] = 1
+        call a:ctx['sink'](2, a:e)
     endif
 endfunction
 
-function! s:createComplete(data) abort
-    if !a:data['end']
-        let a:data['end'] = 1
-        call a:data['sink'](2, callbag#undefined())
+function! s:createComplete(ctx) abort
+    if !a:ctx['end']
+        let a:ctx['end'] = 1
+        call a:ctx['sink'](2, callbag#undefined())
     endif
 endfunction
 " }}}
