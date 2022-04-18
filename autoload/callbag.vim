@@ -120,7 +120,7 @@ endfunction
 "
 "   " when a producer returns a function, it is treated as a cleanup function
 "   function! s:producer_with_cleanup_logic(next, error, complete) abort
-"       let l:timer = timer_start(100, {->a:next('value')}, {'repeat': -1})
+"       let l:timer = timer_start(1000, {->a:next('value')}, {'repeat': -1})
 "       return {-> timer_stop(l:timer)}
 "   endfunction
 "   callbag#create(function('s:producer_with_cleanup_logic'))
