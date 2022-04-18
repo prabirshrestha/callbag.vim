@@ -117,6 +117,12 @@ endfunction
 "   callbag#create({next, error, complete->next('value')})
 "   callbag#create({next, error, complete->error('error')})
 "   callbag#create({next, error, complete->complete()})
+"
+"   function! s:create_with_dispose(next, error, complete) abort
+"       let l:timer = timer_start(100, {->a:next('value')}, {'repeat': -1})
+"       return {-> timer_stop(l:timer)}
+"   endfunction
+"   callbag#create(function('s:create_with_dispose'))
 function! callbag#create(...) abort
     let l:ctx = {}
     if a:0 > 0
