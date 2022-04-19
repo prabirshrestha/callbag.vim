@@ -90,6 +90,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 |---------------|--------------------------------------------------------|
 | Yes           | operate                                                |
 | Yes           | pipe                                                   |
+| Yes           | createSource                                           |
 
 `pipe()`'s first argument should be a source factory.
 `operate()` doesn't requires first function to be the source.

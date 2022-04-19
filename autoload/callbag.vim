@@ -1,5 +1,9 @@
+function! s:noop(...) abort
+endfunction
+
 let s:undefined_token = '__callbag_undefined__'
 let s:str_type = type('')
+let s:func_type = type(function('s:noop'))
 
 function! callbag#undefined() abort
     return s:undefined_token
@@ -9,8 +13,44 @@ function! callbag#isUndefined(d) abort
     return type(a:d) == s:str_type && a:d ==# s:undefined_token
 endfunction
 
-function! s:noop(...) abort
+function! callbag#createSource(fn) abort
+    let l:ctx = { 'fn': a:fn }
+    return function('s:createSourceFn', [l:ctx])
 endfunction
+
+function! s:createSourceFn(ctx, start, sink) abort
+    if a:start == 0
+        let a:ctx['sink'] = a:sink
+        let l:observer = {
+            \ 'next': function('s:createSourceFnNextFn', [a:ctx]),
+            \ 'error': function('s:createSourceFnErrorFn', [a:ctx]),
+            \ 'complete': function('s:createSourceFnCompleteFn', [a:ctx]),
+            \ }
+        let a:ctx['unsubscribe'] = a:ctx['fn'](l:observer)
+        let a:ctx['talkback'] = function('s:createSourceFnTalkbackFn', [a:ctx])
+        call a:sink(0, a:ctx['talkback'])
+    endif
+endfunction
+
+function! s:createSourceFnNextFn(ctx, value) abort
+    call a:ctx['sink'](1, a:value)
+endfunction
+
+function! s:createSourceFnErrorFn(ctx, err) abort
+    call a:ctx['sink'](2, err)
+endfunction
+
+function! s:createSourceFnCompleteFn(ctx) abort
+    call a:ctx['sink'](2, callbag#undefined())
+endfunction
+
+function! s:createSourceFnTalkbackFn(ctx, t, d) abort
+    if a:t == 2 && has_key(a:ctx, 'unsubscribe') && type(a:ctx['unsubscribe']) == s:func_type
+        call a:ctx['unsubscribe']()
+    endif
+endfunction
+
+finish
 
 function! s:createArrayWithSize(size, defaultValue) abort
     let l:i = 0
