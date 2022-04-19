@@ -13,6 +13,50 @@ function! callbag#isUndefined(d) abort
     return type(a:d) == s:str_type && a:d ==# s:undefined_token
 endfunction
 
+" subscribe() {{{
+function! callbag#subscribe(source) abort
+    let l:ctx = { 'source': a:source }
+    return function('s:subscribeFn', [l:ctx])
+endfunction
+
+function! s:subscribeFn(ctx, listener) abort
+    let a:ctx['listener'] = a:listener
+    return function('s:subscribeListenerFn', [a:ctx])
+endfunction
+
+function! s:subscribeListenerFn(ctx) abort
+    if type(a:ctx['source']) == s:func_type
+        let a:ctx['observer'] = { 'next': a:ctx['listener'] }
+    else
+        let a:ctx['observer'] = a:ctx['listener']
+    endif
+    let a:ctx['sink'] = function('s:subscribeSinkFn', [a:ctx])
+
+    call a:ctx['source'](0, a:ctx['sink'])
+
+    return function('s:subscribeDisposeFn', [a:ctx])
+endfunction
+
+function! s:subscribeSinkFn(ctx, t, d) abort
+    if a:t == 0
+        let a:ctx['sourceTalkback'] = a:d
+    elseif a:t == 1
+        if has_key(a:ctx['observer'], 'next') | call a:ctx['observer']['next'](a:d) | endif
+    elseif a:t == 2
+        if callbag#isUndefined(a:d)
+            if has_key(a:ctx['observer'], 'complete') | call a:ctx['observer']['complete']() | endif
+        else
+            if has_key(a:ctx['observer'], 'error') | call a:ctx['observer']['error'](a:d) | endif
+        endif
+    endif
+endfunction
+
+function! s:subscribeDisposeFn(ctx) abort
+    call a:ctx['sourceTalkback'](2, callbag#undefined())
+endfunction
+" }}}
+
+" createSource() {{{
 function! callbag#createSource(fn) abort
     let l:ctx = { 'fn': a:fn }
     return function('s:createSourceFn', [l:ctx])
@@ -49,6 +93,7 @@ function! s:createSourceFnTalkbackFn(ctx, t, d) abort
         call a:ctx['unsubscribe']()
     endif
 endfunction
+" }}}
 
 finish
 
@@ -650,39 +695,6 @@ endfunction
 
 function! s:debounceTimeTimerCallback(data, d, ...) abort
     call a:data['sink'](1, a:d)
-endfunction
-" }}}
-
-" subscribe() {{{
-function! callbag#subscribe(...) abort
-    let l:data = {}
-    if a:0 > 0 && type(a:1) == type({}) " a:1 { next, error, complete }
-        if has_key(a:1, 'next') | let l:data['next'] = a:1['next'] | endif
-        if has_key(a:1, 'error') | let l:data['error'] = a:1['error'] | endif
-        if has_key(a:1, 'complete') | let l:data['complete'] = a:1['complete'] | endif
-    else " a:1 = next, a:2 = error, a:3 = complete
-        if a:0 >= 1 | let l:data['next'] = a:1 | endif
-        if a:0 >= 2 | let l:data['error'] = a:2 | endif
-        if a:0 >= 3 | let l:data['complete'] = a:3 | endif
-    endif
-    return function('s:subscribeListener', [l:data])
-endfunction
-
-function! s:subscribeListener(data, source) abort
-    call a:source(0, function('s:subscribeSourceCallback', [a:data]))
-    return function('s:subscribeDispose', [a:data])
-endfunction
-
-function! s:subscribeSourceCallback(data, t, d) abort
-    if a:t == 0 | let a:data['talkback'] = a:d | endif
-    if a:t == 1 && has_key(a:data, 'next') | call a:data['next'](a:d) | endif
-    if a:t == 1 || a:t == 0 | call a:data['talkback'](1, callbag#undefined()) | endif
-    if a:t == 2 && callbag#isUndefined(a:d) && has_key(a:data, 'complete') | call a:data['complete']() | endif
-    if a:t == 2 && !callbag#isUndefined(a:d) && has_key(a:data, 'error') | call a:data['error'](a:d) | endif
-endfunction
-
-function! s:subscribeDispose(data, ...) abort
-    if has_key(a:data, 'talkback') | call a:data['talkback'](2, callbag#undefined()) | endif
 endfunction
 " }}}
 
