@@ -13,6 +13,16 @@ function! callbag#isUndefined(d) abort
     return type(a:d) == s:str_type && a:d ==# s:undefined_token
 endfunction
 
+" pipe() {{{
+function! callbag#pipe(source, ...) abort
+    let l:TransformedSource = a:source
+    for l:Operator in a:000 " a:000 = operators
+        let l:TransformedSource = l:Operator(l:TransformedSource)
+    endfor
+    return l:TransformedSource
+endfunction
+" }}}
+
 " subscribe() {{{
 function! callbag#subscribe(source) abort
     let l:ctx = { 'source': a:source }
@@ -106,18 +116,6 @@ function! s:createArrayWithSize(size, defaultValue) abort
     endwhile
     return l:array
 endfunction
-
-" pipe() {{{
-function! callbag#pipe(...) abort
-    let l:Res = a:1
-    let l:i = 1
-    while l:i < a:0
-        let l:Res = a:000[l:i](l:Res)
-        let l:i = l:i + 1
-    endwhile
-    return l:Res
-endfunction
-" }}}
 
 " operate() {{{
 function! callbag#operate(...) abort
