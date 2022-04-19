@@ -24,32 +24,33 @@ endfunction
 " }}}
 
 " subscribe() {{{
-function! callbag#subscribe(source) abort
-    let l:ctx = { 'source': a:source }
-    return function('s:subscribeFn', [l:ctx])
+function! callbag#subscribe(...) abort
+    let l:ctx = {}
+    let l:observer = {}
+    if a:0 > 0 && type(a:1) == type({}) " a:1 { next, error, complete }
+        if has_key(a:1, 'next') | let l:observer['next'] = a:1['next'] | endif
+        if has_key(a:1, 'error') | let l:observer['error'] = a:1['error'] | endif
+        if has_key(a:1, 'complete') | let l:observer['complete'] = a:1['complete'] | endif
+    else " a:1 = next, a:2 = error, a:3 = complete
+        if a:0 >= 1 | let l:observer['next'] = a:1 | endif
+        if a:0 >= 2 | let l:observer['error'] = a:2 | endif
+        if a:0 >= 3 | let l:observer['complete'] = a:3 | endif
+    endif
+    let l:ctx['o'] = l:observer
+    return function('s:subscribeSourceFn', [l:ctx])
 endfunction
 
-function! s:subscribeFn(ctx, listener) abort
-    let a:ctx['disposed'] = 0
-    if type(a:listener) == s:func_type
-        let a:ctx['o'] = { 'next': a:listener }
-    else
-        let a:ctx['o'] = a:listener
-    endif
-    let a:ctx['sink'] = function('s:subscribeSinkFn', [a:ctx])
-
-    call a:ctx['source'](0, a:ctx['sink'])
-
-    return function('s:subscribeDisposeFn', [a:ctx])
+function! s:subscribeSourceFn(ctx, source) abort
+    let a:ctx['source'] = a:source
+    call a:source(0, function('s:subscribeSinkFn', [a:ctx]))
+    return function('s:subscribeDispose', [a:ctx])
 endfunction
 
 function! s:subscribeSinkFn(ctx, t, d) abort
     if a:t == 0
         let a:ctx['sourceTalkback'] = a:d
     elseif a:t == 1
-        if has_key(a:ctx['o'], 'next') 
-            call a:ctx['o']['next'](a:d)
-        endif
+        if has_key(a:ctx['o'], 'next') | call a:ctx['o']['next'](a:d) | endif
     elseif a:t == 2
         if callbag#isUndefined(a:d)
             if has_key(a:ctx['o'], 'complete') | call a:ctx['o']['complete']() | endif
@@ -59,10 +60,8 @@ function! s:subscribeSinkFn(ctx, t, d) abort
     endif
 endfunction
 
-function! s:subscribeDisposeFn(ctx) abort
-    if a:ctx['disposed'] | return | endif
-    let a:ctx['disposed'] = 1
-    call a:ctx['sourceTalkback'](2, callbag#undefined())
+function! s:subscribeDispose(ctx) abort
+    if has_key(a:ctx, 'sourceTalkback') | call a:ctx['sourceTalkback'](2, callbag#undefined()) | endif
 endfunction
 " }}}
 
@@ -143,7 +142,8 @@ function! s:fromListDisposeFn(ctx) abort
 endfunction
 " }}}
 
-" OPERATORS {{{
+" ***** OPERATORS ***** {{{
+
 " map() {{{
 function! callbag#map(mapper) abort
     let l:ctx = { 'mapper': a:mapper }
@@ -162,7 +162,7 @@ function! s:mapCreateSourceFn(ctx, o) abort
         \ 'error': a:o.error,
         \ 'complete': a:o.complete,
         \ }
-    return callbag#subscribe(a:ctx['source'])(l:observer)
+    return callbag#subscribe(l:observer)(a:ctx['source'])
 endfunction
 
 function! s:mapNextFn(ctx, value) abort
@@ -170,7 +170,7 @@ function! s:mapNextFn(ctx, value) abort
 endfunction
 " }}}
 
-" scan {{{
+" scan() {{{
 function! callbag#scan(reducer, seed) abort
     let l:ctx = { 'reducer': a:reducer, 'seed': a:seed }
     return function('s:scanFn', [l:ctx])
@@ -189,7 +189,7 @@ function! s:scanCreateSourceFn(ctx, o) abort
         \ 'error': a:o.error,
         \ 'complete': a:o.complete,
         \ }
-    return callbag#subscribe(a:ctx['source'])(l:observer)
+    return callbag#subscribe(l:observer)(a:ctx['source'])
 endfunction
 
 function! s:scanNextFn(ctx, value) abort
@@ -197,6 +197,7 @@ function! s:scanNextFn(ctx, value) abort
     call a:ctx['o']['next'](a:ctx['acc'])
 endfunction
 " }}}
+
 finish
 
 function! s:createArrayWithSize(size, defaultValue) abort
