@@ -170,23 +170,31 @@ function! s:mapNextFn(ctx, value) abort
 endfunction
 " }}}
 
+" scan {{{
 function! callbag#scan(reducer, seed) abort
     let l:ctx = { 'reducer': a:reducer, 'seed': a:seed }
+    return function('s:scanFn', [l:ctx])
 endfunction
 
 function! s:scanFn(ctx, source) abort
     let a:ctx['source'] = a:source
-    return callbag#createSource(function('s:scanFn', [l:ctx]))
+    return callbag#createSource(function('s:scanCreateSourceFn', [a:ctx]))
 endfunction
 
 function! s:scanCreateSourceFn(ctx, o) abort
+    let a:ctx['o'] = a:o
     let a:ctx['acc'] = a:ctx['seed']
     let l:observer = {
         \ 'next': function('s:scanNextFn', [a:ctx]),
-        \ 'error': a:o['error'],
-        \ 'complete': a:o['error'],
+        \ 'error': a:o.error,
+        \ 'complete': a:o.complete,
         \ }
-    return callbag#subscribe(source)(l:observer)
+    return callbag#subscribe(a:ctx['source'])(l:observer)
+endfunction
+
+function! s:scanNextFn(ctx, value) abort
+    let a:ctx['acc'] = a:ctx['reducer'](a:ctx['acc'], a:value)
+    call a:ctx['o']['next'](a:ctx['acc'])
 endfunction
 " }}}
 finish
