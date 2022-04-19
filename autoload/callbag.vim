@@ -112,13 +112,23 @@ function! s:createSourceFnTalkbackFn(ctx, t, d) abort
 endfunction
 " }}}
 
+" empty() {{{
+function! callbag#empty() abort
+    return callbag#createSource(function('s:emptyCreateSourceFn'))
+endfunction
+
+function! s:emptyCreateSourceFn(o) abort
+    call a:o['complete']()
+endfunction
+" }}}
+
 " of() {{{
 function! callbag#of(...) abort
     return callbag#fromList(a:000)
 endfunction
 " }}}
 
-" from() {{{
+" fromList() {{{
 function! callbag#fromList(values) abort
     let l:ctx = { 'values': a:values }
     return callbag#createSource(function('s:fromListCreateSourceFn', [l:ctx]))
@@ -424,30 +434,6 @@ endfunction
 
 function! s:lazySinkCallback(data, t, d) abort
     if a:t == 2 | let a:data['unsubed'] = 1 | endif
-endfunction
-" }}}
-
-" empty() {{{
-function! callbag#empty() abort
-    let l:data = {}
-    return function('s:emptyStart', [l:data])
-endfunction
-
-function! s:emptyStart(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['disposed'] = 0
-    call a:sink(0, function('s:emptySinkCallback', [a:data]))
-    if a:data['disposed'] | return | endif
-    call a:sink(2, callbag#undefined())
-endfunction
-
-function! s:emptySinkCallback(data, t, ...) abort
-    if a:t != 2 | return | endif
-    let a:data['disposed'] = 1
-endfunction
-
-function! s:empty_sink_callback(data, t, ...) abort
-    if a:t == 2 | call timer_stop(a:data['timer']) | endif
 endfunction
 " }}}
 
