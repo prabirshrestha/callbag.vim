@@ -31,14 +31,11 @@ endfunction
 
 function! s:subscribeFn(ctx, listener) abort
     let a:ctx['listener'] = a:listener
-    return function('s:subscribeListenerFn', [a:ctx])
-endfunction
-
-function! s:subscribeListenerFn(ctx) abort
-    if type(a:ctx['source']) == s:func_type
-        let a:ctx['observer'] = { 'next': a:ctx['listener'] }
+    let a:ctx['disposed'] = 0
+    if type(a:ctx['listener']) == s:func_type
+        let a:ctx['o'] = { 'next': a:ctx['listener'] }
     else
-        let a:ctx['observer'] = a:ctx['listener']
+        let a:ctx['o'] = a:ctx['listener']
     endif
     let a:ctx['sink'] = function('s:subscribeSinkFn', [a:ctx])
 
@@ -51,17 +48,21 @@ function! s:subscribeSinkFn(ctx, t, d) abort
     if a:t == 0
         let a:ctx['sourceTalkback'] = a:d
     elseif a:t == 1
-        if has_key(a:ctx['observer'], 'next') | call a:ctx['observer']['next'](a:d) | endif
+        if has_key(a:ctx['o'], 'next') 
+            call a:ctx['o']['next'](a:d)
+        endif
     elseif a:t == 2
         if callbag#isUndefined(a:d)
-            if has_key(a:ctx['observer'], 'complete') | call a:ctx['observer']['complete']() | endif
+            if has_key(a:ctx['o'], 'complete') | call a:ctx['o']['complete']() | endif
         else
-            if has_key(a:ctx['observer'], 'error') | call a:ctx['observer']['error'](a:d) | endif
+            if has_key(a:ctx['o'], 'error') | call a:ctx['o']['error'](a:d) | endif
         endif
     endif
 endfunction
 
 function! s:subscribeDisposeFn(ctx) abort
+    if a:ctx['disposed'] | return | endif
+    let a:ctx['disposed'] = 1
     call a:ctx['sourceTalkback'](2, callbag#undefined())
 endfunction
 " }}}
@@ -75,6 +76,7 @@ endfunction
 function! s:createSourceFn(ctx, start, sink) abort
     if a:start == 0
         let a:ctx['sink'] = a:sink
+        let a:ctx['finished'] = 0
         let l:observer = {
             \ 'next': function('s:createSourceFnNextFn', [a:ctx]),
             \ 'error': function('s:createSourceFnErrorFn', [a:ctx]),
@@ -87,14 +89,19 @@ function! s:createSourceFn(ctx, start, sink) abort
 endfunction
 
 function! s:createSourceFnNextFn(ctx, value) abort
+    if a:ctx['finished'] | return | endif
     call a:ctx['sink'](1, a:value)
 endfunction
 
 function! s:createSourceFnErrorFn(ctx, err) abort
-    call a:ctx['sink'](2, err)
+    if a:ctx['finished'] | return | endif
+    let a:ctx['finished'] = 1
+    call a:ctx['sink'](3, err)
 endfunction
 
 function! s:createSourceFnCompleteFn(ctx) abort
+    if a:ctx['finished'] | return | endif
+    let a:ctx['finished'] = 1
     call a:ctx['sink'](2, callbag#undefined())
 endfunction
 
@@ -105,13 +112,16 @@ function! s:createSourceFnTalkbackFn(ctx, t, d) abort
 endfunction
 " }}}
 
+" of() {{{
 function! callbag#of(...) abort
     return callbag#fromList(a:000)
 endfunction
+" }}}
 
+" from() {{{
 function! callbag#fromList(values) abort
-    let l:ctx['values'] = a:values
-    return function('s:fromListFn', [l:ctx])
+    let l:ctx = { 'values': a:values }
+    return callbag#createSource(function('s:fromListFn', [l:ctx]))
 endfunction
 
 function! s:fromListFn(ctx, o) abort
@@ -119,11 +129,11 @@ function! s:fromListFn(ctx, o) abort
 
     for l:value in a:ctx['values']
         if a:ctx['finished'] | break | endif
-        call a:ctx['o']['next'](l:value)
+        call a:o['next'](l:value)
     endfor
 
     if !a:ctx['finished']
-        call a:ctx['o']['complete']()
+        call a:o['complete']()
     endif
 
     return function('s:fromListDisposeFn', [a:ctx])
@@ -132,6 +142,7 @@ endfunction
 function! s:fromListDisposeFn(ctx) abort
     let a:ctx['finished'] = 1
 endfunction
+" }}}
 
 finish
 
