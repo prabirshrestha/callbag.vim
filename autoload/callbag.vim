@@ -168,6 +168,34 @@ endfunction
 
 " ***** OPERATORS ***** {{{
 
+" filter() {{{
+function! callbag#filter(predicate) abort
+    let l:ctx = { 'predicate': a:predicate }
+    return function('s:filterFn', [l:ctx])
+endfunction
+
+function! s:filterFn(ctx, source) abort
+    let a:ctx['source'] = a:source
+    return callbag#createSource(function('s:filterCreateSourceFn', [a:ctx]))
+endfunction
+
+function! s:filterCreateSourceFn(ctx, o) abort
+    let a:ctx['o'] = a:o
+    let l:observer = {
+        \ 'next': function('s:filterNextFn', [a:ctx]),
+        \ 'error': a:o.error,
+        \ 'complete': a:o.complete,
+        \ }
+    return callbag#subscribe(l:observer)(a:ctx['source'])
+endfunction
+
+function! s:filterNextFn(ctx, value) abort
+    if a:ctx['predicate'](a:value)
+        call a:ctx['o']['next'](a:value)
+    endif
+endfunction
+" }}}
+
 " map() {{{
 function! callbag#map(mapper) abort
     let l:ctx = { 'mapper': a:mapper }
@@ -178,7 +206,6 @@ function! s:mapFn(ctx, source) abort
     let a:ctx['source'] = a:source
     return callbag#createSource(function('s:mapCreateSourceFn', [a:ctx]))
 endfunction
-" }}}
 
 function! s:mapCreateSourceFn(ctx, o) abort
     let a:ctx['o'] = a:o
@@ -657,39 +684,6 @@ endfunction
 
 function! s:mapFSourceCallback(data, t, d) abort
     call a:data['sink'](a:t, a:t == 1 ? a:data['f'](a:d) : a:d)
-endfunction
-" }}}
-
-" filter() {{{
-function! callbag#filter(condition) abort
-    let l:data = { 'condition': a:condition }
-    return function('s:filterCondition', [l:data])
-endfunction
-
-function! s:filterCondition(data, source) abort
-    let a:data['source'] = a:source
-    return function('s:filterConditionSource', [a:data])
-endfunction
-
-function! s:filterConditionSource(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    call a:data['source'](0, function('s:filterSourceCallback', [a:data]))
-endfunction
-
-function! s:filterSourceCallback(data, t, d) abort
-    if a:t == 0
-        let a:data['talkback'] = a:d
-        call a:data['sink'](a:t, a:d)
-    elseif a:t == 1
-        if a:data['condition'](a:d)
-            call a:data['sink'](a:t, a:d)
-        else
-            call a:data['talkback'](1, callbag#undefined())
-        endif
-    else
-        call a:data['sink'](a:t, a:d)
-    endif
 endfunction
 " }}}
 
