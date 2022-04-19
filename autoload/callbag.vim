@@ -65,6 +65,8 @@ function! s:subscribeDispose(ctx) abort
 endfunction
 " }}}
 
+" ***** SOURCES ***** {{{
+
 " createSource() {{{
 function! callbag#createSource(fn) abort
     let l:ctx = { 'fn': a:fn }
@@ -142,6 +144,8 @@ function! s:fromListDisposeFn(ctx) abort
 endfunction
 " }}}
 
+" }}}
+
 " ***** OPERATORS ***** {{{
 
 " map() {{{
@@ -154,6 +158,7 @@ function! s:mapFn(ctx, source) abort
     let a:ctx['source'] = a:source
     return callbag#createSource(function('s:mapCreateSourceFn', [a:ctx]))
 endfunction
+" }}}
 
 function! s:mapCreateSourceFn(ctx, o) abort
     let a:ctx['o'] = a:o
@@ -167,6 +172,16 @@ endfunction
 
 function! s:mapNextFn(ctx, value) abort
     call a:ctx['o']['next'](a:ctx['mapper'](a:value))
+endfunction
+" }}}
+
+" mapTo() {{{
+function! callbag#mapTo(value) abort
+    return callbag#map(function('s:mapToFn', [a:value]))
+endfunction
+
+function! s:mapToFn(value, ...) abort
+    return a:value
 endfunction
 " }}}
 
