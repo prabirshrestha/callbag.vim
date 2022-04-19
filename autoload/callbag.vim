@@ -30,12 +30,11 @@ function! callbag#subscribe(source) abort
 endfunction
 
 function! s:subscribeFn(ctx, listener) abort
-    let a:ctx['listener'] = a:listener
     let a:ctx['disposed'] = 0
-    if type(a:ctx['listener']) == s:func_type
-        let a:ctx['o'] = { 'next': a:ctx['listener'] }
+    if type(a:listener) == s:func_type
+        let a:ctx['o'] = { 'next': a:listener }
     else
-        let a:ctx['o'] = a:ctx['listener']
+        let a:ctx['o'] = a:listener
     endif
     let a:ctx['sink'] = function('s:subscribeSinkFn', [a:ctx])
 
@@ -121,10 +120,10 @@ endfunction
 " from() {{{
 function! callbag#fromList(values) abort
     let l:ctx = { 'values': a:values }
-    return callbag#createSource(function('s:fromListFn', [l:ctx]))
+    return callbag#createSource(function('s:fromListCreateSourceFn', [l:ctx]))
 endfunction
 
-function! s:fromListFn(ctx, o) abort
+function! s:fromListCreateSourceFn(ctx, o) abort
     let a:ctx['finished'] = 0
 
     for l:value in a:ctx['values']
@@ -144,6 +143,52 @@ function! s:fromListDisposeFn(ctx) abort
 endfunction
 " }}}
 
+" OPERATORS {{{
+" map() {{{
+function! callbag#map(mapper) abort
+    let l:ctx = { 'mapper': a:mapper }
+    return function('s:mapFn', [l:ctx])
+endfunction
+
+function! s:mapFn(ctx, source) abort
+    let a:ctx['source'] = a:source
+    return callbag#createSource(function('s:mapCreateSourceFn', [a:ctx]))
+endfunction
+
+function! s:mapCreateSourceFn(ctx, o) abort
+    let a:ctx['o'] = a:o
+    let l:observer = {
+        \ 'next': function('s:mapNextFn', [a:ctx]),
+        \ 'error': a:o.error,
+        \ 'complete': a:o.complete,
+        \ }
+    return callbag#subscribe(a:ctx['source'])(l:observer)
+endfunction
+
+function! s:mapNextFn(ctx, value) abort
+    call a:ctx['o']['next'](a:ctx['mapper'](a:value))
+endfunction
+" }}}
+
+function! callbag#scan(reducer, seed) abort
+    let l:ctx = { 'reducer': a:reducer, 'seed': a:seed }
+endfunction
+
+function! s:scanFn(ctx, source) abort
+    let a:ctx['source'] = a:source
+    return callbag#createSource(function('s:scanFn', [l:ctx]))
+endfunction
+
+function! s:scanCreateSourceFn(ctx, o) abort
+    let a:ctx['acc'] = a:ctx['seed']
+    let l:observer = {
+        \ 'next': function('s:scanNextFn', [a:ctx]),
+        \ 'error': a:o['error'],
+        \ 'complete': a:o['error'],
+        \ }
+    return callbag#subscribe(source)(l:observer)
+endfunction
+" }}}
 finish
 
 function! s:createArrayWithSize(size, defaultValue) abort
@@ -1294,34 +1339,6 @@ function! callbag#flatMap(F) abort
         \ callbag#map(a:F),
         \ callbag#flatten(),
         \ )
-endfunction
-" }}}
-
-" scan() {{{
-function! callbag#scan(reducer, seed) abort
-    let l:data = { 'reducer': a:reducer, 'seed': a:seed }
-    return function('s:scanSource', [l:data])
-endfunction
-
-function! s:scanSource(data, source) abort
-    let a:data['source'] = a:source
-    return function('s:scanFactory', [a:data])
-endfunction
-
-function! s:scanFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    let a:data['acc'] = a:data['seed']
-    call a:data['source'](0, function('s:scanSourceCallback', [a:data]))
-endfunction
-
-function! s:scanSourceCallback(data, t, d) abort
-    if a:t == 1
-        let a:data['acc'] = a:data['reducer'](a:data['acc'], a:d)
-        call a:data['sink'](1, a:data['acc'])
-    else
-        call a:data['sink'](a:t, a:d)
-    endif
 endfunction
 " }}}
 
