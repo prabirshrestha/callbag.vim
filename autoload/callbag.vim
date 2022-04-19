@@ -168,6 +168,74 @@ endfunction
 
 " ***** OPERATORS ***** {{{
 
+" delay() {{{
+function! callbag#delay(duration) abort
+    let l:ctx = { 'duration': a:duration }
+    return function('s:delayFn', [l:ctx])
+endfunction
+
+function! s:delayFn(ctx, source) abort
+    let a:ctx['source'] = a:source
+    return callbag#createSource(function('s:delayCreateSourceFn', [a:ctx]))
+endfunction
+
+function! s:delayCreateSourceFn(ctx, o) abort
+    let a:ctx['o'] = a:o
+    let a:ctx['timerIds'] = []
+
+    let a:ctx['clearTimers'] = function('s:delayClearTimers', [a:ctx])
+
+    let l:observer = {
+        \ 'next': function('s:delayNextFn', [a:ctx]),
+        \ 'error': function('s:delayErrorFn', [a:ctx]),
+        \ 'complete': function('s:delayCompleteFn', [a:ctx]),
+        \ }
+
+    let a:ctx['unsubscribe'] = callbag#subscribe(l:observer)(a:ctx['source'])
+
+    return function('s:delayUnsubscribe', [a:ctx])
+endfunction
+
+function! s:delayClearTimers(ctx) abort
+    for l:timerId in a:ctx['timerIds']
+        call timer_stop(l:timerId)
+    endfor
+endfunction
+
+function! s:delayNextFn(ctx, value) abort
+    let l:timerId = timer_start(a:ctx['duration'], function('s:delayNextFnTimerCallback', [a:ctx, a:value]))
+    call add(a:ctx['timerIds'], l:timerId)
+endfunction
+
+function! s:delayNextFnTimerCallback(ctx, value, timerId) abort
+    echom a:value
+    call a:ctx['o']['next'](a:value)
+    let l:index = index(a:ctx['timerIds'], a:timerId)
+    if l:index >= 0 | call remove(a:ctx['timerIds'], l:index) | endif
+endfunction
+
+function! s:delayErrorFn(ctx, err) abort
+    call a:ctx['clearTimers']()
+    call a:ctx['o']['error'](a:err)
+endfunction
+
+function! s:delayCompleteFn(ctx) abort
+    let l:timerId = timer_start(a:ctx['duration'], function('s:delayCompleteFnTimerCallback', [a:ctx]))
+    call add(a:ctx['timerIds'], l:timerId)
+endfunction
+
+function! s:delayCompleteFnTimerCallback(ctx, timerId) abort
+    call a:ctx['o']['complete']()
+    let l:index = index(a:ctx['timerIds'], a:timerId)
+    if l:index >= 0 | call remove(a:ctx['timerIds'], l:index) | endif
+endfunction
+
+function! s:delayUnsubscribe(ctx) abort
+    call a:ctx['clearTimers']()
+    call a:ctx['unsubscribe']()
+endfunction
+" }}}
+
 " filter() {{{
 function! callbag#filter(predicate) abort
     let l:ctx = { 'predicate': a:predicate }
@@ -547,37 +615,6 @@ endfunction
 
 function! s:interval_sink_callback(data, t, ...) abort
     if a:t == 2 | call timer_stop(a:data['timer']) | endif
-endfunction
-" }}}
-
-" delay() {{{
-function! callbag#delay(period) abort
-    let l:data = { 'period': a:period }
-    return function('s:delayPeriod', [l:data])
-endfunction
-
-function! s:delayPeriod(data, source) abort
-    let a:data['source'] = a:source
-    return function('s:delayFactory', [a:data])
-endfunction
-
-function! s:delayFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    call a:data['source'](0, function('s:delaySourceCallback', [a:data]))
-endfunction
-
-function! s:delaySourceCallback(data, t, d) abort
-    if a:t != 1
-        call a:data['sink'](a:t, a:d)
-        return
-    endif
-    let a:data['d'] = a:d
-    call timer_start(a:data['period'], function('s:delayTimerCallback', [a:data]))
-endfunction
-
-function! s:delayTimerCallback(data, ...) abort
-    call a:data['sink'](1, a:data['d'])
 endfunction
 " }}}
 
