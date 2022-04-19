@@ -198,6 +198,38 @@ function! s:scanNextFn(ctx, value) abort
 endfunction
 " }}}
 
+" reduce() {{{
+function! callbag#reduce(reducer, seed) abort
+    let l:ctx = { 'reducer': a:reducer, 'seed': a:seed }
+    return function('s:reduceFn', [l:ctx])
+endfunction
+
+function! s:reduceFn(ctx, source) abort
+    let a:ctx['source'] = a:source
+    return callbag#createSource(function('s:reduceCreateSourceFn', [a:ctx]))
+endfunction
+
+function! s:reduceCreateSourceFn(ctx, o) abort
+    let a:ctx['o'] = a:o
+    let a:ctx['acc'] = a:ctx['seed']
+    let l:observer = {
+        \ 'next': function('s:reduceNextFn', [a:ctx]),
+        \ 'error': a:o.error,
+        \ 'complete': function('s:reduceCompleteFn', [a:ctx])
+        \ }
+    return callbag#subscribe(l:observer)(a:ctx['source'])
+endfunction
+
+function! s:reduceNextFn(ctx, value) abort
+    let a:ctx['acc'] = a:ctx['reducer'](a:ctx['acc'], a:value)
+endfunction
+
+function! s:reduceCompleteFn(ctx) abort
+    call a:ctx['o']['next'](a:ctx['acc'])
+    call a:ctx['o']['complete']()
+endfunction
+" }}}
+
 finish
 
 function! s:createArrayWithSize(size, defaultValue) abort
@@ -1348,36 +1380,6 @@ function! callbag#flatMap(F) abort
         \ callbag#map(a:F),
         \ callbag#flatten(),
         \ )
-endfunction
-" }}}
-
-" reduce() {{{
-function! callbag#reduce(reducer, seed) abort
-    let l:data = { 'reducer': a:reducer, 'seed': a:seed }
-    return function('s:reduceSource', [l:data])
-endfunction
-
-function! s:reduceSource(data, source) abort
-    let a:data['source'] = a:source
-    return function('s:reduceFactory', [a:data])
-endfunction
-
-function! s:reduceFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    let a:data['acc'] = a:data['seed']
-    call a:data['source'](0, function('s:reduceSourceCallback', [a:data]))
-endfunction
-
-function! s:reduceSourceCallback(data, t, d) abort
-    if a:t == 1
-        let a:data['acc'] = a:data['reducer'](a:data['acc'], a:d)
-    elseif a:t == 2 && callbag#isUndefined(a:d)
-        call a:data['sink'](1, a:data['acc'])
-        call a:data['sink'](2, callbag#undefined())
-    else
-        call a:data['sink'](a:t, a:d)
-    endif
 endfunction
 " }}}
 
