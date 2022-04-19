@@ -96,7 +96,7 @@ endfunction
 function! s:createSourceFnErrorFn(ctx, err) abort
     if a:ctx['finished'] | return | endif
     let a:ctx['finished'] = 1
-    call a:ctx['sink'](3, err)
+    call a:ctx['sink'](2, err)
 endfunction
 
 function! s:createSourceFnCompleteFn(ctx) abort
