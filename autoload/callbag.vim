@@ -105,6 +105,34 @@ function! s:createSourceFnTalkbackFn(ctx, t, d) abort
 endfunction
 " }}}
 
+function! callbag#of(...) abort
+    return callbag#fromList(a:000)
+endfunction
+
+function! callbag#fromList(values) abort
+    let l:ctx['values'] = a:values
+    return function('s:fromListFn', [l:ctx])
+endfunction
+
+function! s:fromListFn(ctx, o) abort
+    let a:ctx['finished'] = 0
+
+    for l:value in a:ctx['values']
+        if a:ctx['finished'] | break | endif
+        call a:ctx['o']['next'](l:value)
+    endfor
+
+    if !a:ctx['finished']
+        call a:ctx['o']['complete']()
+    endif
+
+    return function('s:fromListDisposeFn', [a:ctx])
+endfunction
+
+function! s:fromListDisposeFn(ctx) abort
+    let a:ctx['finished'] = 1
+endfunction
+
 finish
 
 function! s:createArrayWithSize(size, defaultValue) abort
@@ -803,41 +831,6 @@ function! s:throwErrorFactory(data, start, sink) abort
 endfunction
 
 function! s:throwErrorSinkCallback(data, t, ...) abort
-    if a:t != 2 | return | endif
-    let a:data['disposed'] = 1
-endfunction
-" }}}
-
-" of() {{{
-function! callbag#of(...) abort
-    let l:data = { 'values': a:000 }
-    return function('s:listFactory', [l:data])
-endfunction
-" }}}
-
-" fromList() {{{
-function! callbag#fromList(list) abort
-    let l:data = { 'values': a:list }
-    return function('s:listFactory', [l:data])
-endfunction
-
-function! s:listFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['disposed'] = 0
-    call a:sink(0, function('s:listSinkCallback', [a:data]))
-    let l:i = 0
-    let l:n = len(a:data['values'])
-    while l:i < l:n
-        if a:data['disposed'] | break | endif
-        call a:sink(1, a:data['values'][l:i])
-        let l:i += 1
-    endwhile
-    if a:data['disposed'] | return | endif
-    call a:sink(2, callbag#undefined())
-endfunction
-
-
-function! s:listSinkCallback(data, t, ...) abort
     if a:t != 2 | return | endif
     let a:data['disposed'] = 1
 endfunction
