@@ -154,6 +154,16 @@ function! s:fromListDisposeFn(ctx) abort
 endfunction
 " }}}
 
+" never() {{{
+function! callbag#never() abort
+    return callbag#createSource(function('s:neverCreateSourceFn'))
+endfunction
+
+function! s:neverCreateSourceFn(o) abort
+    " source that never completes and emits no data
+endfunction
+" }}}
+
 " }}}
 
 " ***** OPERATORS ***** {{{
@@ -434,17 +444,6 @@ endfunction
 
 function! s:lazySinkCallback(data, t, d) abort
     if a:t == 2 | let a:data['unsubed'] = 1 | endif
-endfunction
-" }}}
-
-" never() {{{
-function! callbag#never() abort
-    return function('s:never')
-endfunction
-
-function! s:never(start, sink) abort
-    if a:start != 0 | return | endif
-    call a:sink(0, function('s:noop'))
 endfunction
 " }}}
 
