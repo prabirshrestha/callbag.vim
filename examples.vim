@@ -5,6 +5,22 @@ function! s:log(x) abort
 endfunction
 
 function! callbag#demo() abort
+    " simulate async
+    call callbag#pipe(
+        \   callbag#of(1,2,3, 4, 5),
+        \   callbag#flatMap({x->
+        \       callbag#pipe(
+        \           callbag#timer(rand(s:seed) % 10000),
+        \           callbag#mapTo(x),
+        \       )
+        \   }),
+        \   callbag#subscribe({
+        \   'next':{x->s:log('next', x)},
+        \   'error':{e->s:log('error', e)},
+        \   'complete':{->s:log('complete')},
+        \ })
+        \ )
+
     call callbag#pipe(
         \ callbag#interval(1000),
         \ callbag#take(10),
