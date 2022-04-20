@@ -208,7 +208,6 @@ function! s:delayNextFn(ctx, value) abort
 endfunction
 
 function! s:delayNextFnTimerCallback(ctx, value, timerId) abort
-    echom a:value
     call a:ctx['o']['next'](a:value)
     let l:index = index(a:ctx['timerIds'], a:timerId)
     if l:index >= 0 | call remove(a:ctx['timerIds'], l:index) | endif
@@ -260,6 +259,109 @@ endfunction
 function! s:filterNextFn(ctx, value) abort
     if a:ctx['predicate'](a:value)
         call a:ctx['o']['next'](a:value)
+    endif
+endfunction
+" }}}
+
+" flatMap() {{{
+function! callbag#flatMap(mapper) abort
+    let l:ctx = { 'mapper': a:mapper }
+    return function('s:flatMapFn', [l:ctx])
+endfunction
+
+function! s:flatMapFn(ctx, source) abort
+    let a:ctx['source'] = a:source
+     return callbag#createSource(function('s:flatMapCreateSourceFn', [a:ctx]))
+endfunction
+
+function! s:flatMapCreateSourceFn(ctx, o) abort
+    let a:ctx['o'] = a:o
+    let a:ctx['finished'] = 0
+    let a:ctx['subscriptionList'] = []
+    let a:ctx['cancelSubscriptions'] = function('s:flatMapCancelSubscriptionsFn', [a:ctx])
+    let a:ctx['removeSubscription'] = function('s:flatMapRemoveSubscriptionFn', [a:ctx])
+
+    let l:observer = {
+        \ 'next': function('s:flatMapNextFn', [a:ctx]),
+        \ 'error': function('s:flatMapErrorFn', [a:ctx]),
+        \ 'complete': function('s:flatMapCompleteFn', [a:ctx]),
+        \ }
+
+    let a:ctx['unsubscribe'] = callbag#subscribe(l:observer)(a:ctx['source'])
+
+    return function('s:flatMapDispose', [a:ctx])
+endfunction
+
+function! s:flatMapCancelSubscriptionsFn(ctx) abort
+    for l:subscription in a:ctx['subscriptionList']
+        if has_key(l:subscription, 'unsubscribe')
+            call l:subscription['unsubscribe']()
+        endif
+    endfor
+endfunction
+
+function! s:flatMapRemoveSubscriptionFn(ctx, subscription) abort
+    let l:i = 0
+    let l:len = len(a:ctx['subscriptionList'])
+    while l:i < l:len
+        let l:subscription = a:ctx['subscriptionList'][l:i]
+        if l:subscription == a:subscription
+            call remove(a:ctx['subscriptionList'], l:i)
+            break
+        endif
+        let l:i += 1
+    endwhile
+endfunction
+
+function! s:flatMapErrorFn(ctx, err) abort
+    let a:ctx['finished'] = 1
+    call a:ctx['cancelSubscriptions']()
+    call a:ctx['o']['error'](a:err)
+endfunction
+
+function! s:flatMapCompleteFn(ctx) abort
+    let a:ctx['finished'] = 1
+    if empty(a:ctx['subscriptionList'])
+        call a:ctx['o']['complete']()
+    endif
+endfunction
+
+function! s:flatMapDispose(ctx) abort
+    call a:ctx['cancelSubscriptions']()
+    call a:ctx['unsubscribe']()
+endfunction
+
+function! s:flatMapNextFn(ctx, value) abort
+    if !a:ctx['finished']
+        let l:mappedCtx = {}
+        let l:mappedCtx['subscription'] = {}
+        call add(a:ctx['subscriptionList'], l:mappedCtx['subscription'])
+        let l:mappedObserver = {
+            \ 'next': function('s:flatMapMappedNextFn', [a:ctx, l:mappedCtx]),
+            \ 'error': function('s:flatMapMappedErrorFn', [a:ctx, l:mappedCtx]),
+            \ 'complete': function('s:flatMapMappedCompleteFn', [a:ctx, l:mappedCtx]),
+            \ }
+
+        let l:Source = a:ctx['mapper'](a:value)
+        let l:mappedCtx['subscription']['unsubscribe'] = callbag#subscribe(l:mappedObserver)(l:Source)
+    endif
+endfunction
+
+function! s:flatMapMappedNextFn(ctx, mappedCtx, value) abort
+    call a:ctx['o']['next'](a:value)
+endfunction
+
+function! s:flatMapMappedErrorFn(ctx, mappedCtx, err) abort
+    call a:ctx['removeSubscription'](a:mappedCtx['subscription'])
+    call a:ctx['cancelSubscriptions']()
+    call a:ctx['o']['error'](a:err)
+    call a:ctx['unsubscribe']()
+endfunction
+
+function! s:flatMapMappedCompleteFn(ctx, mappedCtx) abort
+    call a:ctx['removeSubscription'](a:mappedCtx['subscription'])
+    if a:ctx['finished'] && empty(a:ctx['subscriptionList'])
+        call a:ctx['o']['complete']()
     endif
 endfunction
 " }}}
@@ -1328,89 +1430,6 @@ function! s:groupSourceCallback(data, t, d) abort
             call a:data['sink'](a:t, a:d)
         endif
     endif
-endfunction
-" }}}
-
-" flatten() {{{
-function! callbag#flatten() abort
-    return function('s:flattenSource')
-endfunction
-
-function! s:flattenSource(source) abort
-    let l:data = { 'source': a:source }
-    return function('s:flattenFactory', [l:data])
-endfunction
-
-function! s:flattenFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    let a:data['outerEnded'] = 0
-    let a:data['outerTalkback'] = 0
-    let a:data['innerTalkback'] = 0
-    let a:data['talkback'] = function('s:flattenTalkbackCallback', [a:data])
-    call a:data['source'](0, function('s:flattenSourceCallback', [a:data]))
-endfunction
-
-function! s:flattenTalkbackCallback(data, t, d) abort
-    if a:t == 1
-        if a:data['innerTalkback'] != 0
-            call a:data['innerTalkback'](1, a:d)
-        else
-            call a:data['outerTalkback'](1, a:d)
-        endif
-    endif
-    if a:t == 2
-        if a:data['innerTalkback'] != 0 | call a:data['innerTalkback'](2, callbag#undefined()) | endif
-        call a:data['outerTalkback'](2, callbag#undefined())
-    endif
-endfunction
-
-function! s:flattenSourceCallback(data, t, d) abort
-    if a:t == 0
-        let a:data['outerTalkback'] = a:d
-        call a:data['sink'](0, a:data['talkback'])
-    elseif a:t == 1
-        let l:InnerSource = a:d
-        if a:data['innerTalkback'] != 0 | call a:data['innerTalkback'](2, callbag#undefined()) | endif
-        call l:InnerSource(0, function('s:flattenInnerSourceCallback', [a:data]))
-    elseif a:t == 2 && !callbag#isUndefined(a:d)
-        if a:data['innerTalkback'] != 0 | call a:data['innerTalkback'](2, callbag#undefined()) | endif
-        call a:data['outerTalkback'](1, a:d)
-    elseif a:t == 2
-        if a:data['innerTalkback'] == 0
-            call a:data['sink'](2, callbag#undefined())
-        else
-            let a:data['outerEnded'] = 1
-        endif
-    endif
-endfunction
-
-function! s:flattenInnerSourceCallback(data, t, d) abort
-    if a:t == 0
-        let a:data['innerTalkback'] = a:d
-        call a:data['innerTalkback'](1, callbag#undefined())
-    elseif a:t == 1
-        call a:data['sink'](1, a:d)
-    elseif a:t == 2 && !callbag#isUndefined(a:d)
-        call a:data['outerTalkback'](2, callbag#undefined())
-        call a:data['sink'](2, a:d)
-    elseif a:t == 2
-        if a:data['outerEnded'] != 0
-            call a:data['sink'](2, callbag#undefined())
-        else
-            let a:data['innerTalkback'] = 0
-            call a:data['outerTalkback'](1, callbag#undefined())
-        endif
-    endif
-endfunction
-" }}}
-
-" flatMap() {{{
-function! callbag#flatMap(F) abort
-    return callbag#operate(
-        \ callbag#map(a:F),
-        \ callbag#flatten(),
-        \ )
 endfunction
 " }}}
 
