@@ -460,6 +460,51 @@ function! s:reduceCompleteFn(ctx) abort
     call a:ctx['o']['next'](a:ctx['acc'])
     call a:ctx['o']['complete']()
 endfunction
+
+" tap {{{
+function! callbag#tap(...) abort
+    let l:ctx = {}
+    if a:0 > 0 && type(a:1) == type({}) " a:1 { next, error, complete }
+        if has_key(a:1, 'next') | let l:ctx['next'] = a:1['next'] | endif
+        if has_key(a:1, 'error') | let l:ctx['error'] = a:1['error'] | endif
+        if has_key(a:1, 'complete') | let l:ctx['complete'] = a:1['complete'] | endif
+    else " a:1 = next, a:2 = error, a:3 = complete
+        if a:0 >= 1 | let l:ctx['next'] = a:1 | endif
+        if a:0 >= 2 | let l:ctx['error'] = a:2 | endif
+        if a:0 >= 3 | let l:ctx['complete'] = a:3 | endif
+    endif
+    return function('s:tapFn', [l:ctx])
+endfunction
+
+function! s:tapFn(ctx, source) abort
+    let a:ctx['source'] = a:source
+    return callbag#createSource(function('s:tapCreateSourceFn', [a:ctx]))
+endfunction
+
+function! s:tapCreateSourceFn(ctx, o) abort
+    let a:ctx['o'] = a:o
+    let l:observer = {
+        \ 'next': function('s:tapNextFn', [a:ctx]),
+        \ 'error': function('s:tapErrorFn', [a:ctx]),
+        \ 'complete': function('s:tapCompleteFn', [a:ctx]),
+        \ }
+    return callbag#subscribe(l:observer)(a:ctx['source'])
+endfunction
+
+function! s:tapNextFn(ctx, value) abort
+    if has_key(a:ctx, 'next') | call a:ctx['next'](a:value) | endif
+    call a:ctx['o']['next'](a:value)
+endfunction
+
+function! s:tapErrorFn(ctx, err) abort
+    if has_key(a:ctx, 'error') | call a:ctx['error'](a:err) | endif
+    call a:ctx['o']['error'](a:err)
+endfunction
+
+function! s:tapCompleteFn(ctx) abort
+    if has_key(a:ctx, 'complete') | call a:ctx['complete']() | endif
+    call a:ctx['o']['complete']()
+endfunction
 " }}}
 
 finish
@@ -658,40 +703,6 @@ function! s:forEachOperationSource(data, t, d) abort
     if a:t == 0 | let a:data['talkback'] = a:d | endif
     if a:t == 1 | call a:data['operation'](a:d) | endif
     if (a:t == 1 || a:t == 0) | call a:data['talkback'](1, callbag#undefined()) | endif
-endfunction
-" }}}
-
-" tap() {{{
-function! callbag#tap(...) abort
-    let l:data = {}
-    if a:0 > 0 && type(a:1) == type({}) " a:1 { next, error, complete }
-        if has_key(a:1, 'next') | let l:data['next'] = a:1['next'] | endif
-        if has_key(a:1, 'error') | let l:data['error'] = a:1['error'] | endif
-        if has_key(a:1, 'complete') | let l:data['complete'] = a:1['complete'] | endif
-    else " a:1 = next, a:2 = error, a:3 = complete
-        if a:0 >= 1 | let l:data['next'] = a:1 | endif
-        if a:0 >= 2 | let l:data['error'] = a:2 | endif
-        if a:0 >= 3 | let l:data['complete'] = a:3 | endif
-    endif
-    return function('s:tapFactory', [l:data])
-endfunction
-
-function! s:tapFactory(data, source) abort
-    let a:data['source'] = a:source
-    return function('s:tapSouceFactory', [a:data])
-endfunction
-
-function! s:tapSouceFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    call a:data['source'](0, function('s:tapSourceCallback', [a:data]))
-endfunction
-
-function! s:tapSourceCallback(data, t, d) abort
-    if a:t == 1 && has_key(a:data, 'next') | call a:data['next'](a:d) | endif
-    if a:t == 2 && callbag#isUndefined(a:d) && has_key(a:data, 'complete') | call a:data['complete']() | endif
-    if a:t == 2 && !callbag#isUndefined(a:d) && has_key(a:data, 'error') | call a:data['error'](a:d) | endif
-    call a:data['sink'](a:t, a:d)
 endfunction
 " }}}
 
