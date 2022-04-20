@@ -164,6 +164,43 @@ function! s:neverCreateSourceFn(o) abort
 endfunction
 " }}}
 
+" timer() {{{
+function! callbag#timer(initialDelay, ...) abort
+    let l:ctx = { 'initialDelay': a:initialDelay }
+    if a:0 == 1 | let l:ctx['period'] = a:1 | endif
+    return callbag#createSource(function('s:timerCreateSourceFn', [l:ctx]))
+endfunction
+
+function! s:timerCreateSourceFn(ctx, o) abort
+    let a:ctx['o'] = a:o
+    let a:ctx['n'] = -1
+
+    let l:initialDelayTimerId = timer_start(a:ctx['initialDelay'], function('s:timerInitialDelayTimerCb', [a:ctx]))
+
+    return function('s:timerDisposeFn', [a:ctx])
+endfunction
+
+function! s:timerInitialDelayTimerCb(ctx, ...) abort
+    let a:ctx['n'] += 1
+    call a:ctx['o']['next'](a:ctx['n'])
+    if has_key(a:ctx, 'period')
+        let a:ctx['periodTimerId'] = timer_start(a:ctx['period'], function('s:timerPeriodTimerCb', [a:ctx]), { 'repeat': -1 })
+    else
+        call a:ctx['o']['complete']()
+    endif
+endfunction
+
+function! s:timerPeriodTimerCb(ctx, ...) abort
+    let a:ctx['n'] += 1
+    call a:ctx['o']['next'](a:ctx['n'])
+endfunction
+
+function! s:timerDisposeFn(ctx) abort
+    call timer_stop(a:ctx['initialDelayTimerId'])
+    if has_key(a:ctx, 'period') | call timer_stop(a:ctx['periodTimerId']) | endif
+endfunction
+" }}}
+
 " }}}
 
 " ***** OPERATORS ***** {{{
