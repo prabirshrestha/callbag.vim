@@ -164,8 +164,8 @@ function! s:neverCreateSourceFn(o) abort
 endfunction
 " }}}
 
-" period() {{{
-function! callbag#period(period) abort
+" interval() {{{
+function! callbag#interval(period) abort
     return callbag#timer(a:period, a:period)
 endfunction
 " }}}
