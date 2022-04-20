@@ -14,12 +14,24 @@ function! callbag#isUndefined(d) abort
 endfunction
 
 " pipe() {{{
-function! callbag#pipe(source, ...) abort
-    let l:TransformedSource = a:source
-    for l:Operator in a:000 " a:000 = operators
-        let l:TransformedSource = l:Operator(l:TransformedSource)
-    endfor
-    return l:TransformedSource
+function! callbag#pipe(...) abort
+    if a:0 == 0
+        return function('s:pipeIdentity')
+    elseif a:0 == 1
+        return a:1
+    else
+        let l:Res = a:1
+        let l:i = 1
+        while l:i < a:0
+            let l:Res = a:000[l:i](l:Res)
+            let l:i = l:i + 1
+        endwhile
+        return l:Res
+    endif
+endfunction
+
+function! s:pipeIdentity(x) abort
+    return a:x
 endfunction
 " }}}
 
