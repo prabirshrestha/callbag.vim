@@ -37,7 +37,8 @@ endfunction
 
 " subscribe() {{{
 function! callbag#subscribe(...) abort
-    let l:ctx = {}
+    " listener
+    let l:ctxListener = {}
     let l:observer = {}
     if a:0 > 0 && type(a:1) == type({}) " a:1 { next, error, complete }
         if has_key(a:1, 'next') | let l:observer['next'] = a:1['next'] | endif
@@ -48,32 +49,32 @@ function! callbag#subscribe(...) abort
         if a:0 >= 2 | let l:observer['error'] = a:2 | endif
         if a:0 >= 3 | let l:observer['complete'] = a:3 | endif
     endif
-    let l:ctx['o'] = l:observer
-    return function('s:subscribeSourceFn', [l:ctx])
+    let l:ctxListener['o'] = l:observer
+    return function('s:subscribeSourceFn', [l:ctxListener])
 endfunction
 
-function! s:subscribeSourceFn(ctx, source) abort
-    let a:ctx['source'] = a:source
-    call a:source(0, function('s:subscribeSinkFn', [a:ctx]))
-    return function('s:subscribeDispose', [a:ctx])
+function! s:subscribeSourceFn(ctxListener, source) abort
+    let l:ctxSource = { 'source': a:source, 'ctxListener': a:ctxListener }
+    call a:source(0, function('s:subscribeSinkFn', [l:ctxSource]))
+    return function('s:subscribeDispose', [l:ctxSource])
 endfunction
 
-function! s:subscribeSinkFn(ctx, t, d) abort
+function! s:subscribeSinkFn(ctxSource, t, d) abort
     if a:t == 0
-        let a:ctx['sourceTalkback'] = a:d
+        let a:ctxSource['sourceTalkback'] = a:d
     elseif a:t == 1
-        if has_key(a:ctx['o'], 'next') | call a:ctx['o']['next'](a:d) | endif
+        if has_key(a:ctxSource['ctxListener']['o'], 'next') | call a:ctxSource['ctxListener']['o']['next'](a:d) | endif
     elseif a:t == 2
         if callbag#isUndefined(a:d)
-            if has_key(a:ctx['o'], 'complete') | call a:ctx['o']['complete']() | endif
+            if has_key(a:ctxSource['ctxListener']['o'], 'complete') | call a:ctxSource['ctxListener']['o']['complete']() | endif
         else
-            if has_key(a:ctx['o'], 'error') | call a:ctx['o']['error'](a:d) | endif
+            if has_key(a:ctxSrouce['ctxListener']['o'], 'error') | call a:ctxSource['ctsListener']['o']['error'](a:d) | endif
         endif
     endif
 endfunction
 
-function! s:subscribeDispose(ctx) abort
-    if has_key(a:ctx, 'sourceTalkback') | call a:ctx['sourceTalkback'](2, callbag#undefined()) | endif
+function! s:subscribeDispose(ctxSource) abort
+    if has_key(a:ctxSource, 'sourceTalkback') | call a:ctxSource['sourceTalkback'](2, callbag#undefined()) | endif
 endfunction
 " }}}
 
