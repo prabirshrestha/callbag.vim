@@ -164,6 +164,12 @@ function! s:neverCreateSourceFn(o) abort
 endfunction
 " }}}
 
+" period() {{{
+function! callbag#period(period) abort
+    return callbag#timer(a:period, a:period)
+endfunction
+" }}}
+
 " timer() {{{
 function! callbag#timer(initialDelay, ...) abort
     let l:ctx = { 'initialDelay': a:initialDelay }
