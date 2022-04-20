@@ -495,6 +495,34 @@ function! s:tapCompleteFn(ctx) abort
 endfunction
 " }}}
 
+function! callbag#toList() abort
+    return function('s:toListFn')
+endfunction
+
+function! s:toListFn(source) abort
+    let l:ctxSource = { 'source': a:source }
+    return callbag#createSource(function('s:toListCreateSourceFn', [l:ctxSource]))
+endfunction
+
+function! s:toListCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreate = { 'o': a:o, 'values': [] }
+    let l:observer = {
+        \ 'next': function('s:toListNextFn', [l:ctxCreate]),
+        \ 'error': a:o['error'],
+        \ 'complete': function('s:toListCompleteFn', [l:ctxCreate]),
+        \ }
+    return callbag#subscribe(l:observer)(a:ctxSource['source'])
+endfunction
+
+function! s:toListNextFn(ctxCreate, value) abort
+    call add(a:ctxCreate['values'], a:value)
+endfunction
+
+function! s:toListCompleteFn(ctxCreate) abort
+    call a:ctxCreate['o']['next'](a:ctxCreate['values'])
+    call a:ctxCreate['o']['complete']()
+endfunction
+
 finish
 
 function! s:createArrayWithSize(size, defaultValue) abort
