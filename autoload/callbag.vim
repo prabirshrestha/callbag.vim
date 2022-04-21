@@ -118,9 +118,9 @@ function! s:createSourceFnCompleteFn(ctxCreateSource) abort
     call a:ctxCreateSource['sink'](2, callbag#undefined())
 endfunction
 
-function! s:createSourceFnTalkbackFn(ctx, t, d) abort
-    if a:t == 2 && has_key(a:ctx, 'unsubscribe') && type(a:ctx['unsubscribe']) == s:func_type
-        call a:ctx['unsubscribe']()
+function! s:createSourceFnTalkbackFn(ctxCreateSource, t, d) abort
+    if a:t == 2 && has_key(a:ctxCreateSource, 'unsubscribe') && type(a:ctxCreateSource['unsubscribe']) == s:func_type
+        call a:ctxCreateSource['unsubscribe']()
     endif
 endfunction
 " }}}
