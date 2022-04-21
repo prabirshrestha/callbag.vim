@@ -148,22 +148,22 @@ function! callbag#fromList(values) abort
 endfunction
 
 function! s:fromListCreateSourceFn(ctx, o) abort
-    let a:ctx['finished'] = 0
+    let l:ctxCreateSource = { 'finished': 0 }
 
     for l:value in a:ctx['values']
-        if a:ctx['finished'] | break | endif
+        if l:ctxCreateSource['finished'] | break | endif
         call a:o['next'](l:value)
     endfor
 
-    if !a:ctx['finished']
+    if !l:ctxCreateSource['finished']
         call a:o['complete']()
     endif
 
-    return function('s:fromListDisposeFn', [a:ctx])
+    return function('s:fromListDisposeFn', [l:ctxCreateSource])
 endfunction
 
-function! s:fromListDisposeFn(ctx) abort
-    let a:ctx['finished'] = 1
+function! s:fromListDisposeFn(ctxCreateSource) abort
+    let a:ctxCreateSource['finished'] = 1
 endfunction
 " }}}
 
