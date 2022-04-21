@@ -704,26 +704,6 @@ function! s:createComplete(ctx) abort
 endfunction
 " }}}
 
-" lazy() {{{
-function! callbag#lazy(F) abort
-    let l:data = { 'F': a:F }
-    return function('s:lazyFactory', [l:data])
-endfunction
-
-function! s:lazyFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    let a:data['unsubed'] = 0
-    call a:data['sink'](0, function('s:lazySinkCallback', [a:data]))
-    call a:data['sink'](1, a:data['F']())
-    if !a:data['unsubed'] | call a:data['sink'](2, callbag#undefined()) | endif
-endfunction
-
-function! s:lazySinkCallback(data, t, d) abort
-    if a:t == 2 | let a:data['unsubed'] = 1 | endif
-endfunction
-" }}}
-
 " forEach() {{{
 function! callbag#forEach(operation) abort
     let l:data = { 'operation': a:operation }
