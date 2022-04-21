@@ -167,6 +167,24 @@ function! s:fromListDisposeFn(ctx) abort
 endfunction
 " }}}
 
+" lazy() {{{
+function! callbag#lazy(f) abort
+    let l:ctxSource = { 'f': a:f }
+    return callbag#createSource(function('s:lazyCreateSourceFn', [l:ctxSource]))
+endfunction
+
+function! s:lazyCreateSourceFn(ctxSource, o) abort
+    let a:ctxSource['finished'] = 0
+    call a:o['next'](a:ctxSource['f']())
+    if !a:ctxSource['finished'] | call a:o['complete']() | endif
+    return function('s:lazyDisposeFn', [a:ctxSource])
+endfunction
+
+function! s:lazyDisposeFn(ctxSrouce) abort
+    let a:ctxSource['finished'] = 1
+endfunction
+" }}}
+
 " never() {{{
 function! callbag#never() abort
     return callbag#createSource(function('s:neverCreateSourceFn'))
