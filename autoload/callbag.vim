@@ -87,35 +87,35 @@ function! callbag#createSource(fn) abort
 endfunction
 
 function! s:createSourceFn(ctx, start, sink) abort
+    let l:ctxCreateSource = { 'ctx': a:ctx, 'sink': a:sink }
     if a:start == 0
-        let a:ctx['sink'] = a:sink
-        let a:ctx['finished'] = 0
+        let l:ctxCreateSource['finished'] = 0
         let l:observer = {
-            \ 'next': function('s:createSourceFnNextFn', [a:ctx]),
-            \ 'error': function('s:createSourceFnErrorFn', [a:ctx]),
-            \ 'complete': function('s:createSourceFnCompleteFn', [a:ctx]),
+            \ 'next': function('s:createSourceFnNextFn', [l:ctxCreateSource]),
+            \ 'error': function('s:createSourceFnErrorFn', [l:ctxCreateSource]),
+            \ 'complete': function('s:createSourceFnCompleteFn', [l:ctxCreateSource]),
             \ }
-        let a:ctx['unsubscribe'] = a:ctx['fn'](l:observer)
-        let a:ctx['talkback'] = function('s:createSourceFnTalkbackFn', [a:ctx])
-        call a:sink(0, a:ctx['talkback'])
+        let l:ctxCreateSource['unsubscribe'] = a:ctx['fn'](l:observer)
+        let l:ctxCreateSource['talkback'] = function('s:createSourceFnTalkbackFn', [l:ctxCreateSource])
+        call a:sink(0, l:ctxCreateSource['talkback'])
     endif
 endfunction
 
-function! s:createSourceFnNextFn(ctx, value) abort
-    if a:ctx['finished'] | return | endif
-    call a:ctx['sink'](1, a:value)
+function! s:createSourceFnNextFn(ctxCreateSource, value) abort
+    if a:ctxCreateSource['finished'] | return | endif
+    call a:ctxCreateSource['sink'](1, a:value)
 endfunction
 
-function! s:createSourceFnErrorFn(ctx, err) abort
-    if a:ctx['finished'] | return | endif
-    let a:ctx['finished'] = 1
-    call a:ctx['sink'](2, err)
+function! s:createSourceFnErrorFn(ctxCreateSource, err) abort
+    if a:ctxCreateSource['finished'] | return | endif
+    let a:ctxCreateSource['finished'] = 1
+    call a:ctxCreateSource['sink'](2, a:err)
 endfunction
 
-function! s:createSourceFnCompleteFn(ctx) abort
-    if a:ctx['finished'] | return | endif
-    let a:ctx['finished'] = 1
-    call a:ctx['sink'](2, callbag#undefined())
+function! s:createSourceFnCompleteFn(ctxCreateSource) abort
+    if a:ctxCreateSource['finished'] | return | endif
+    let a:ctxCreateSource['finished'] = 1
+    call a:ctxCreateSource['sink'](2, callbag#undefined())
 endfunction
 
 function! s:createSourceFnTalkbackFn(ctx, t, d) abort
