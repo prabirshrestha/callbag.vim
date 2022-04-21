@@ -209,33 +209,34 @@ function! callbag#timer(initialDelay, ...) abort
 endfunction
 
 function! s:timerCreateSourceFn(ctx, o) abort
-    let a:ctx['o'] = a:o
-    let a:ctx['n'] = -1
+    let l:ctxCreateSource = { 'o': a:o, 'n': -1, 'ctx': a:ctx }
 
-    let a:ctx['initialDelayTimerId'] = timer_start(a:ctx['initialDelay'], function('s:timerInitialDelayTimerCb', [a:ctx]))
+    let l:ctxCreateSource['initialDelayTimerId'] = timer_start(a:ctx['initialDelay'],
+        \ function('s:timerInitialDelayTimerCb', [l:ctxCreateSource]))
 
-    return function('s:timerDisposeFn', [a:ctx])
+    return function('s:timerDisposeFn', [l:ctxCreateSource])
 endfunction
 
-function! s:timerInitialDelayTimerCb(ctx, ...) abort
-    let a:ctx['n'] += 1
-    call a:ctx['o']['next'](a:ctx['n'])
-    if has_key(a:ctx, 'period')
-        let a:ctx['periodTimerId'] = timer_start(a:ctx['period'], function('s:timerPeriodTimerCb', [a:ctx]), { 'repeat': -1 })
+function! s:timerInitialDelayTimerCb(ctxCreateSource, ...) abort
+    let a:ctxCreateSource['n'] += 1
+    call a:ctxCreateSource['o']['next'](a:ctxCreateSource['n'])
+    if has_key(a:ctxCreateSource['ctx'], 'period')
+        let a:ctxCreateSource['periodTimerId'] = timer_start(a:ctxCreateSource['ctx']['period'],
+            \ function('s:timerPeriodTimerCb', [a:ctxCreateSource]), { 'repeat': -1 })
     else
-        call a:ctx['o']['complete']()
+        call a:ctxCreateSource['o']['complete']()
     endif
 endfunction
 
-function! s:timerPeriodTimerCb(ctx, ...) abort
-    let a:ctx['n'] += 1
-    call a:ctx['o']['next'](a:ctx['n'])
+function! s:timerPeriodTimerCb(ctxCreateSource, ...) abort
+    let a:ctxCreateSource['n'] += 1
+    call a:ctxCreateSource['o']['next'](a:ctxCreateSource['n'])
 endfunction
 
-function! s:timerDisposeFn(ctx) abort
-    call timer_stop(a:ctx['initialDelayTimerId'])
-    if has_key(a:ctx, 'period') && has_key(a:ctx, 'periodTimerId')
-        call timer_stop(a:ctx['periodTimerId'])
+function! s:timerDisposeFn(ctxCreateSource) abort
+    call timer_stop(a:ctxCreateSource['initialDelayTimerId'])
+    if has_key(a:ctxCreateSource['ctx'], 'period') && has_key(a:ctxCreateSource, 'periodTimerId')
+        call timer_stop(a:ctxCreateSource['periodTimerId'])
     endif
 endfunction
 " }}}
