@@ -212,7 +212,7 @@ function! s:timerCreateSourceFn(ctx, o) abort
     let a:ctx['o'] = a:o
     let a:ctx['n'] = -1
 
-    let l:initialDelayTimerId = timer_start(a:ctx['initialDelay'], function('s:timerInitialDelayTimerCb', [a:ctx]))
+    let a:ctx['initialDelayTimerId'] = timer_start(a:ctx['initialDelay'], function('s:timerInitialDelayTimerCb', [a:ctx]))
 
     return function('s:timerDisposeFn', [a:ctx])
 endfunction
@@ -234,7 +234,9 @@ endfunction
 
 function! s:timerDisposeFn(ctx) abort
     call timer_stop(a:ctx['initialDelayTimerId'])
-    if has_key(a:ctx, 'period') | call timer_stop(a:ctx['periodTimerId']) | endif
+    if has_key(a:ctx, 'period') && has_key(a:ctx, 'periodTimerId')
+        call timer_stop(a:ctx['periodTimerId'])
+    endif
 endfunction
 " }}}
 
@@ -467,6 +469,53 @@ function! s:reduceCompleteFn(ctx) abort
     call a:ctx['o']['next'](a:ctx['acc'])
     call a:ctx['o']['complete']()
 endfunction
+" }}}
+
+" take() {{{
+function! callbag#take(count) abort
+    let l:ctx = { 'count': a:count }
+    return function('s:takeSource', [l:ctx])
+endfunction
+
+function! s:takeSource(ctx, source) abort
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:takeCreateSource', [l:ctxSource]))
+endfunction
+
+function! s:takeCreateSource(ctxSource, o) abort
+    if a:ctxSource['ctx']['count'] <= 0
+        call a:o['complete']()
+        return
+    endif
+
+    let l:ctxCreateSource = {
+        \ 'ctxSource': a:ctxSource,
+        \ 'o': a:o,
+        \ 'taken': 0,
+        \ 'unsubscribe': function('s:noop')
+        \ }
+
+    let l:observer = {
+        \   'next': function('s:takeNextFn', [l:ctxCreateSource]),
+        \   'error': a:o['error'],
+        \   'complete': a:o['complete'],
+        \ }
+
+    let l:ctxCreateSource['unsubscribe'] = callbag#subscribe(l:observer)(a:ctxSource['source'])
+
+    return l:ctxCreateSource['unsubscribe']
+endfunction
+
+function! s:takeNextFn(ctxCreateSource, value) abort
+    call a:ctxCreateSource['o']['next'](a:value)
+    let a:ctxCreateSource['taken'] += 1
+
+    if a:ctxCreateSource['taken'] >= a:ctxCreateSource['ctxSource']['ctx']['count']
+        call a:ctxCreateSource['unsubscribe']()
+        call a:ctxCreateSource['o']['complete']()
+    endif
+endfunction
+" }}}
 
 " tap {{{
 function! callbag#tap(...) abort
