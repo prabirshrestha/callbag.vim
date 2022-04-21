@@ -169,19 +169,19 @@ endfunction
 
 " lazy() {{{
 function! callbag#lazy(f) abort
-    let l:ctxSource = { 'f': a:f }
-    return callbag#createSource(function('s:lazyCreateSourceFn', [l:ctxSource]))
+    let l:ctx = { 'f': a:f }
+    return callbag#createSource(function('s:lazyCreateSourceFn', [l:ctx]))
 endfunction
 
-function! s:lazyCreateSourceFn(ctxSource, o) abort
-    let a:ctxSource['finished'] = 0
-    call a:o['next'](a:ctxSource['f']())
-    if !a:ctxSource['finished'] | call a:o['complete']() | endif
-    return function('s:lazyDisposeFn', [a:ctxSource])
+function! s:lazyCreateSourceFn(ctx, o) abort
+    let l:ctxCreateSource = { 'finished': 0 }
+    call a:o['next'](a:ctx['f']())
+    if !l:ctxCreateSource['finished'] | call a:o['complete']() | endif
+    return function('s:lazyDisposeFn', [l:ctxCreateSource])
 endfunction
 
-function! s:lazyDisposeFn(ctxSrouce) abort
-    let a:ctxSource['finished'] = 1
+function! s:lazyDisposeFn(ctxCreateSource) abort
+    let a:ctxCreateSource['finished'] = 1
 endfunction
 " }}}
 
