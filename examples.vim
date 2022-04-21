@@ -1,7 +1,5 @@
-let s:i = 0
-function! s:log(x) abort
-    let s:i += 1
-    echom 'log ' . s:i . '   ' . json_encode(a:x)
+function! s:log(...) abort
+    echom json_encode([strftime('%X'), a:000])
 endfunction
 
 function! callbag#demo() abort
