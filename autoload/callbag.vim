@@ -252,23 +252,23 @@ function! callbag#filter(predicate) abort
 endfunction
 
 function! s:filterFn(ctx, source) abort
-    let a:ctx['source'] = a:source
-    return callbag#createSource(function('s:filterCreateSourceFn', [a:ctx]))
+    let l:ctxSource = { 'source': a:source, 'ctx': a:ctx }
+    return callbag#createSource(function('s:filterCreateSourceFn', [l:ctxSource]))
 endfunction
 
-function! s:filterCreateSourceFn(ctx, o) abort
-    let a:ctx['o'] = a:o
+function! s:filterCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreateSource = { 'o': a:o, 'ctxSource': a:ctxSource }
     let l:observer = {
-        \ 'next': function('s:filterNextFn', [a:ctx]),
+        \ 'next': function('s:filterNextFn', [l:ctxCreateSource]),
         \ 'error': a:o.error,
         \ 'complete': a:o.complete,
         \ }
-    return callbag#subscribe(l:observer)(a:ctx['source'])
+    return callbag#subscribe(l:observer)(a:ctxSource['source'])
 endfunction
 
-function! s:filterNextFn(ctx, value) abort
-    if a:ctx['predicate'](a:value)
-        call a:ctx['o']['next'](a:value)
+function! s:filterNextFn(ctxCreateSource, value) abort
+    if a:ctxCreateSource['ctxSource']['ctx']['predicate'](a:value)
+        call a:ctxCreateSource['o']['next'](a:value)
     endif
 endfunction
 " }}}
