@@ -280,98 +280,101 @@ function! callbag#flatMap(mapper) abort
 endfunction
 
 function! s:flatMapFn(ctx, source) abort
-    let a:ctx['source'] = a:source
-     return callbag#createSource(function('s:flatMapCreateSourceFn', [a:ctx]))
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+     return callbag#createSource(function('s:flatMapCreateSourceFn', [l:ctxSource]))
 endfunction
 
-function! s:flatMapCreateSourceFn(ctx, o) abort
-    let a:ctx['o'] = a:o
-    let a:ctx['finished'] = 0
-    let a:ctx['subscriptionList'] = []
-    let a:ctx['cancelSubscriptions'] = function('s:flatMapCancelSubscriptionsFn', [a:ctx])
-    let a:ctx['removeSubscription'] = function('s:flatMapRemoveSubscriptionFn', [a:ctx])
+function! s:flatMapCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreateSource = {
+        \ 'ctxSource': a:ctxSource,
+        \ 'o': a:o,
+        \ 'finished': 0,
+        \ 'subscriptionList': [],
+        \ }
+    let l:ctxCreateSource['cancelSubscriptions'] = function('s:flatMapCancelSubscriptionsFn', [l:ctxCreateSource])
+    let l:ctxCreateSource['removeSubscription'] = function('s:flatMapRemoveSubscriptionFn', [l:ctxCreateSource])
 
     let l:observer = {
-        \ 'next': function('s:flatMapNextFn', [a:ctx]),
-        \ 'error': function('s:flatMapErrorFn', [a:ctx]),
-        \ 'complete': function('s:flatMapCompleteFn', [a:ctx]),
+        \ 'next': function('s:flatMapNextFn', [l:ctxCreateSource]),
+        \ 'error': function('s:flatMapErrorFn', [l:ctxCreateSource]),
+        \ 'complete': function('s:flatMapCompleteFn', [l:ctxCreateSource]),
         \ }
 
-    let a:ctx['unsubscribe'] = callbag#subscribe(l:observer)(a:ctx['source'])
+    let l:ctxCreateSource['unsubscribe'] = callbag#subscribe(l:observer)(a:ctxSource['source'])
 
-    return function('s:flatMapDispose', [a:ctx])
+    return function('s:flatMapDispose', [l:ctxCreateSource])
 endfunction
 
-function! s:flatMapCancelSubscriptionsFn(ctx) abort
-    for l:subscription in a:ctx['subscriptionList']
+function! s:flatMapCancelSubscriptionsFn(ctxCreateSource) abort
+    for l:subscription in a:ctxCreateSource['subscriptionList']
         if has_key(l:subscription, 'unsubscribe')
             call l:subscription['unsubscribe']()
         endif
     endfor
 endfunction
 
-function! s:flatMapRemoveSubscriptionFn(ctx, subscription) abort
+function! s:flatMapRemoveSubscriptionFn(ctxCreateSource, subscription) abort
     let l:i = 0
-    let l:len = len(a:ctx['subscriptionList'])
+    let l:len = len(a:ctxCreateSource['subscriptionList'])
     while l:i < l:len
-        let l:subscription = a:ctx['subscriptionList'][l:i]
+        let l:subscription = a:ctxCreateSource['subscriptionList'][l:i]
         if l:subscription == a:subscription
-            call remove(a:ctx['subscriptionList'], l:i)
+            call remove(a:ctxCreateSource['subscriptionList'], l:i)
             break
         endif
         let l:i += 1
     endwhile
 endfunction
 
-function! s:flatMapErrorFn(ctx, err) abort
-    let a:ctx['finished'] = 1
-    call a:ctx['cancelSubscriptions']()
-    call a:ctx['o']['error'](a:err)
+function! s:flatMapErrorFn(ctxCreateSource, err) abort
+    let a:ctxCreateSource['finished'] = 1
+    call a:ctxCreateSource['cancelSubscriptions']()
+    call a:ctxCreateSource['o']['error'](a:err)
 endfunction
 
-function! s:flatMapCompleteFn(ctx) abort
-    let a:ctx['finished'] = 1
-    if empty(a:ctx['subscriptionList'])
-        call a:ctx['o']['complete']()
+function! s:flatMapCompleteFn(ctxCreateSource) abort
+    let a:ctxCreateSource['finished'] = 1
+    if empty(a:ctxCreateSource['subscriptionList'])
+        call a:ctxCreateSource['o']['complete']()
     endif
 endfunction
 
-function! s:flatMapDispose(ctx) abort
-    call a:ctx['cancelSubscriptions']()
-    call a:ctx['unsubscribe']()
+function! s:flatMapDispose(ctxCreateSource) abort
+    call a:ctxCreateSource['cancelSubscriptions']()
+    call a:ctxCreateSource['unsubscribe']()
 endfunction
 
-function! s:flatMapNextFn(ctx, value) abort
-    if !a:ctx['finished']
+function! s:flatMapNextFn(ctxCreateSource, value) abort
+    if !a:ctxCreateSource['finished']
         let l:mappedCtx = {}
         let l:mappedCtx['subscription'] = {}
-        call add(a:ctx['subscriptionList'], l:mappedCtx['subscription'])
+        call add(a:ctxCreateSource['subscriptionList'], l:mappedCtx['subscription'])
         let l:mappedObserver = {
-            \ 'next': function('s:flatMapMappedNextFn', [a:ctx, l:mappedCtx]),
-            \ 'error': function('s:flatMapMappedErrorFn', [a:ctx, l:mappedCtx]),
-            \ 'complete': function('s:flatMapMappedCompleteFn', [a:ctx, l:mappedCtx]),
+            \ 'next': function('s:flatMapMappedNextFn', [a:ctxCreateSource, l:mappedCtx]),
+            \ 'error': function('s:flatMapMappedErrorFn', [a:ctxCreateSource, l:mappedCtx]),
+            \ 'complete': function('s:flatMapMappedCompleteFn', [a:ctxCreateSource, l:mappedCtx]),
             \ }
 
-        let l:Source = a:ctx['mapper'](a:value)
+        let l:Source = a:ctxCreateSource['ctxSource']['ctx']['mapper'](a:value)
         let l:mappedCtx['subscription']['unsubscribe'] = callbag#subscribe(l:mappedObserver)(l:Source)
     endif
 endfunction
 
-function! s:flatMapMappedNextFn(ctx, mappedCtx, value) abort
-    call a:ctx['o']['next'](a:value)
+function! s:flatMapMappedNextFn(ctxCreateSource, mappedCtx, value) abort
+    call a:ctxCreateSource['o']['next'](a:value)
 endfunction
 
-function! s:flatMapMappedErrorFn(ctx, mappedCtx, err) abort
-    call a:ctx['removeSubscription'](a:mappedCtx['subscription'])
-    call a:ctx['cancelSubscriptions']()
-    call a:ctx['o']['error'](a:err)
-    call a:ctx['unsubscribe']()
+function! s:flatMapMappedErrorFn(ctxCreateSource, mappedCtx, err) abort
+    call a:ctxCreateSource['removeSubscription'](a:mappedCtx['subscription'])
+    call a:ctxCreateSource['cancelSubscriptions']()
+    call a:ctxCreateSource['o']['error'](a:err)
+    call a:ctxCreateSource['unsubscribe']()
 endfunction
 
-function! s:flatMapMappedCompleteFn(ctx, mappedCtx) abort
-    call a:ctx['removeSubscription'](a:mappedCtx['subscription'])
-    if a:ctx['finished'] && empty(a:ctx['subscriptionList'])
-        call a:ctx['o']['complete']()
+function! s:flatMapMappedCompleteFn(ctxCreateSource, mappedCtx) abort
+    call a:ctxCreateSource['removeSubscription'](a:mappedCtx['subscription'])
+    if a:ctxCreateSource['finished'] && empty(a:ctxCreateSource['subscriptionList'])
+        call a:ctxCreateSource['o']['complete']()
     endif
 endfunction
 " }}}
