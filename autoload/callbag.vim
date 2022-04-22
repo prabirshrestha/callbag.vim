@@ -450,28 +450,28 @@ function! callbag#reduce(reducer, seed) abort
 endfunction
 
 function! s:reduceFn(ctx, source) abort
-    let a:ctx['source'] = a:source
-    return callbag#createSource(function('s:reduceCreateSourceFn', [a:ctx]))
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:reduceCreateSourceFn', [l:ctxSource]))
 endfunction
 
-function! s:reduceCreateSourceFn(ctx, o) abort
-    let a:ctx['o'] = a:o
-    let a:ctx['acc'] = a:ctx['seed']
+function! s:reduceCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o,
+        \ 'acc': a:ctxSource['ctx']['seed'] }
     let l:observer = {
-        \ 'next': function('s:reduceNextFn', [a:ctx]),
+        \ 'next': function('s:reduceNextFn', [l:ctxCreateSource]),
         \ 'error': a:o.error,
-        \ 'complete': function('s:reduceCompleteFn', [a:ctx])
+        \ 'complete': function('s:reduceCompleteFn', [l:ctxCreateSource])
         \ }
-    return callbag#subscribe(l:observer)(a:ctx['source'])
+    return callbag#subscribe(l:observer)(a:ctxSource['source'])
 endfunction
 
-function! s:reduceNextFn(ctx, value) abort
-    let a:ctx['acc'] = a:ctx['reducer'](a:ctx['acc'], a:value)
+function! s:reduceNextFn(ctxCreateSource, value) abort
+    let a:ctxCreateSource['acc'] = a:ctxCreateSource['ctxSource']['ctx']['reducer'](a:ctxCreateSource['acc'], a:value)
 endfunction
 
-function! s:reduceCompleteFn(ctx) abort
-    call a:ctx['o']['next'](a:ctx['acc'])
-    call a:ctx['o']['complete']()
+function! s:reduceCompleteFn(ctxCreateSource) abort
+    call a:ctxCreateSource['o']['next'](a:ctxCreateSource['acc'])
+    call a:ctxCreateSource['o']['complete']()
 endfunction
 " }}}
 
