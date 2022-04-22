@@ -637,9 +637,7 @@ function! s:toBlockingListUnsubscribe(ctxSource) abort
 endfunction
 
 function! s:toBlockingListNextFn(ctxSource, value) abort
-    echom json_encode(['next', a:value, a:ctxSource['items']])
     call add(a:ctxSource['items'], a:value)
-    echom json_encode(['next2', a:value, a:ctxSource['items']])
 endfunction
 
 function! s:toBlockingListErrorFn(ctxSource, err) abort
