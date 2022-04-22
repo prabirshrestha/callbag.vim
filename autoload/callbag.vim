@@ -5,6 +5,8 @@ let s:undefined_token = '__callbag_undefined__'
 let s:str_type = type('')
 let s:func_type = type(function('s:noop'))
 
+" ***** UTILS ***** {{{
+
 function! callbag#undefined() abort
     return s:undefined_token
 endfunction
@@ -76,6 +78,8 @@ endfunction
 function! s:subscribeDispose(ctxSource) abort
     if has_key(a:ctxSource, 'sourceTalkback') | call a:ctxSource['sourceTalkback'](2, callbag#undefined()) | endif
 endfunction
+" }}}
+
 " }}}
 
 " ***** SOURCES ***** {{{
@@ -567,6 +571,7 @@ function! s:tapCompleteFn(ctxCreateSource) abort
 endfunction
 " }}}
 
+" toList() {{{
 function! callbag#toList() abort
     return function('s:toListFn')
 endfunction
@@ -594,6 +599,9 @@ function! s:toListCompleteFn(ctxCreate) abort
     call a:ctxCreate['o']['next'](a:ctxCreate['values'])
     call a:ctxCreate['o']['complete']()
 endfunction
+" }}}
+
+" }}}
 
 finish
 
@@ -1933,4 +1941,4 @@ function! s:spawnNotifyExit(data) abort
 endfunction
 " }}}
 
-" vim:ts=4:sw=4:ai:foldmethod=marker:foldlevel=0:
+" vim: set sw=4 ts=4 sts=4 et tw=78 foldmarker={{{,}}} foldmethod=marker spell:
