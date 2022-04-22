@@ -537,33 +537,33 @@ function! callbag#tap(...) abort
 endfunction
 
 function! s:tapFn(ctx, source) abort
-    let a:ctx['source'] = a:source
-    return callbag#createSource(function('s:tapCreateSourceFn', [a:ctx]))
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:tapCreateSourceFn', [l:ctxSource]))
 endfunction
 
-function! s:tapCreateSourceFn(ctx, o) abort
-    let a:ctx['o'] = a:o
+function! s:tapCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o }
     let l:observer = {
-        \ 'next': function('s:tapNextFn', [a:ctx]),
-        \ 'error': function('s:tapErrorFn', [a:ctx]),
-        \ 'complete': function('s:tapCompleteFn', [a:ctx]),
+        \ 'next': function('s:tapNextFn', [l:ctxCreateSource]),
+        \ 'error': function('s:tapErrorFn', [l:ctxCreateSource]),
+        \ 'complete': function('s:tapCompleteFn', [l:ctxCreateSource]),
         \ }
-    return callbag#subscribe(l:observer)(a:ctx['source'])
+    return callbag#subscribe(l:observer)(a:ctxSource['source'])
 endfunction
 
-function! s:tapNextFn(ctx, value) abort
-    if has_key(a:ctx, 'next') | call a:ctx['next'](a:value) | endif
-    call a:ctx['o']['next'](a:value)
+function! s:tapNextFn(ctxCreateSource, value) abort
+    if has_key(a:ctxCreateSource['ctxSource']['ctx'], 'next') | call a:ctxCreateSource['ctxSource']['ctx']['next'](a:value) | endif
+    call a:ctxCreateSource['o']['next'](a:value)
 endfunction
 
-function! s:tapErrorFn(ctx, err) abort
-    if has_key(a:ctx, 'error') | call a:ctx['error'](a:err) | endif
-    call a:ctx['o']['error'](a:err)
+function! s:tapErrorFn(ctxCreateSource, err) abort
+    if has_key(a:ctxCreateSource['ctxSource']['ctx'], 'error') | call a:ctxCreateSource['ctxSource']['ctx']['error'](a:err) | endif
+    call a:ctxCreateSource['o']['error'](a:err)
 endfunction
 
-function! s:tapCompleteFn(ctx) abort
-    if has_key(a:ctx, 'complete') | call a:ctx['complete']() | endif
-    call a:ctx['o']['complete']()
+function! s:tapCompleteFn(ctxCreateSource) abort
+    if has_key(a:ctxCreateSource['ctxSource']['ctx'], 'complete') | call a:ctxCreateSource['ctxSource']['ctx']['complete']() | endif
+    call a:ctxCreateSource['o']['complete']()
 endfunction
 " }}}
 
