@@ -386,22 +386,22 @@ function! callbag#map(mapper) abort
 endfunction
 
 function! s:mapFn(ctx, source) abort
-    let a:ctx['source'] = a:source
-    return callbag#createSource(function('s:mapCreateSourceFn', [a:ctx]))
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:mapCreateSourceFn', [l:ctxSource]))
 endfunction
 
-function! s:mapCreateSourceFn(ctx, o) abort
-    let a:ctx['o'] = a:o
+function! s:mapCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o }
     let l:observer = {
-        \ 'next': function('s:mapNextFn', [a:ctx]),
+        \ 'next': function('s:mapNextFn', [l:ctxCreateSource]),
         \ 'error': a:o.error,
         \ 'complete': a:o.complete,
         \ }
-    return callbag#subscribe(l:observer)(a:ctx['source'])
+    return callbag#subscribe(l:observer)(a:ctxSource['source'])
 endfunction
 
-function! s:mapNextFn(ctx, value) abort
-    call a:ctx['o']['next'](a:ctx['mapper'](a:value))
+function! s:mapNextFn(ctxCreateSource, value) abort
+    call a:ctxCreateSource['o']['next'](a:ctxCreateSource['ctxSource']['ctx']['mapper'](a:value))
 endfunction
 " }}}
 
