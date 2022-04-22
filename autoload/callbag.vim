@@ -605,6 +605,98 @@ function! s:toListCompleteFn(ctxCreate) abort
 endfunction
 " }}}
 
+" toBlockingList() {{{
+function! callbag#toBlockingList() abort
+    return function('s:toBlockingListFn')
+endfunction
+
+function! s:toBlockingListFn(source) abort
+    let l:ctxSource = { 'source': a:source,
+        \ 'done': 0, 'items': [], 'unsubscribed': 0 }
+    let l:ctxSource['unsubscribe'] = callbag#subscribe(
+        \ function('s:toBlockingListNextFn', [l:ctxSource]),
+        \ function('s:toBlockingListErrorFn', [l:ctxSource]),
+        \ function('s:toBlockingListCompleteFn', [l:ctxSource]),
+        \ )(a:source)
+    if l:ctxSource['done'] | call s:toBlockingListUnsubscribe(l:ctxSource) | endif
+    return {
+        \   'unsubscribe': function('s:toBlockingListUnsubscribe', [l:ctxSource]),
+        \   'wait': function('s:toBlockingListWait', [l:ctxSource])
+        \ }
+endfunction
+
+function! s:toBlockingListUnsubscribe(ctxSource) abort
+    if !has_key(a:ctxSource, 'unsubscribe') | return | endif
+    if !a:ctxSource['unsubscribed']
+        let a:ctxSource['unsubscribed'] = 1
+        call a:ctxSource['unsubscribe']()
+        if !a:ctxSource['done']
+            let a:ctxSource['done'] = 1
+        endif
+    endif
+endfunction
+
+function! s:toBlockingListNextFn(ctxSource, value) abort
+    echom json_encode(['next', a:value, a:ctxSource['items']])
+    call add(a:ctxSource['items'], a:value)
+    echom json_encode(['next2', a:value, a:ctxSource['items']])
+endfunction
+
+function! s:toBlockingListErrorFn(ctxSource, err) abort
+    let a:ctxSource['done'] = 1
+    let a:ctxSource['error'] = a:err
+endfunction
+
+function! s:toBlockingListCompleteFn(ctxSource) abort
+    let a:ctxSource['done'] = 1
+    call s:toBlockingListUnsubscribe(a:ctxSource)
+endfunction
+
+function! s:toBlockingListWait(ctxSource, ...) abort
+    if a:ctxSource['done']
+        if has_key(a:ctxSource, 'error')
+            throw a:ctxSource['error']
+        else
+            return a:ctxSource['items']
+        endif
+    else
+        let l:opt = a:0 > 0 ? copy(a:1) : {}
+        let l:opt['timedout'] = 0
+        let l:opt['sleep'] = get(l:opt, 'sleep', 1)
+        let l:opt['timeout'] = get(l:opt, 'timeout', -1)
+
+        if l:opt['timeout'] > -1
+            let l:opt['timer'] = timer_start(l:opt['timeout'], function('s:toBlockingListTimeoutCallback', [l:opt]))
+        endif
+
+        while !a:ctxSource['done'] && !l:opt['timedout']
+            exec 'sleep ' . l:opt['sleep'] . 'm'
+        endwhile
+
+        if has_key(l:opt, 'timer')
+            silent! call timer_stop(l:opt['timer'])
+        endif
+
+        call s:toBlockingListUnsubscribe(a:ctxSource)
+
+        if l:opt['timedout']
+            throw 'callbag toBlockingList().wait() timedout.'
+        endif
+
+        if has_key(a:ctxSource, 'error')
+            throw a:ctxSource['error']
+        else
+            return a:ctxSource['items']
+        endif
+    endif
+endfunction
+
+function! s:toBlockingListTimeoutCallback(opt, ...) abort
+    let a:opt['timedout'] = 1
+endfunction
+
+" }}}
+
 " }}}
 
 " vim: set sw=4 ts=4 sts=4 et tw=78 foldmarker={{{,}}} foldmethod=marker foldlevel=1 spell:

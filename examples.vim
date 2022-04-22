@@ -247,7 +247,7 @@ function! callbag#demo() abort
         let l:result = callbag#pipe(
             \ callbag#interval(250),
             \ callbag#take(3),
-            \ callbag#toList(),
+            \ callbag#toBlockingList(),
             \ ).wait({ 'sleep': 1, 'timeout': 5000 })
         echom l:result
     catch
