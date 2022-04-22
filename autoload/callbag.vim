@@ -7,13 +7,17 @@ let s:func_type = type(function('s:noop'))
 
 " ***** UTILS ***** {{{
 
+" undefined() {{{
 function! callbag#undefined() abort
     return s:undefined_token
 endfunction
+" }}}
 
+" isUndefined() {{{
 function! callbag#isUndefined(d) abort
     return type(a:d) == s:str_type && a:d ==# s:undefined_token
 endfunction
+" }}}
 
 " pipe() {{{
 function! callbag#pipe(...) abort
@@ -602,3 +606,5 @@ endfunction
 " }}}
 
 " }}}
+
+" vim: set sw=4 ts=4 sts=4 et tw=78 foldmarker={{{,}}} foldmethod=marker foldlevel=1 spell:
