@@ -451,6 +451,82 @@ function! s:scanNextFn(ctxCreateSource, value) abort
 endfunction
 " }}}
 
+" switchMap() {{{
+function! callbag#switchMap(mapper) abort
+    let l:ctx = { 'mapper': a:mapper }
+    return function('s:switchMapFn', [l:ctx])
+endfunction
+
+function! s:switchMapFn(ctx, source) abort
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:switchMapCreateSourceFn', [l:ctxSource]))
+endfunction
+
+function! s:switchMapCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o,
+        \ 'hasCurrentSubscription': 0,
+        \ 'completed': 0,
+        \ 'finished': 0,
+        \ 'unsubscribe': function('s:noop'),
+        \ 'unsubscribePrevious': function('s:noop')
+        \  }
+    let l:ctxCreateSource['mappedObserver'] = {
+        \ 'next': a:o['next'],
+        \ 'error': function('s:switchMapMappedObserverErrorFn', [l:ctxCreateSource]),
+        \ 'complete': function('s:switchMapMappedObserverCompleteFn', [l:ctxCreateSource]),
+        \ }
+    let l:observer = {
+        \ 'next': function('s:switchMapObserverNextFn', [l:ctxCreateSource]),
+        \ 'error': function('s:switchMapObserverErrorFn', [l:ctxCreateSource]),
+        \ 'complete': function('s:switchMapObserverCompleteFn', [l:ctxCreateSource]),
+        \ }
+    let l:ctxCreateSource['unsubscribe'] = callbag#subscribe(l:observer)(a:ctxSource['source'])
+    return function('s:switchMapDisposeFn', [l:ctxCreateSource])
+endfunction
+
+function! s:switchMapMappedObserverErrorFn(ctxCreateSource, err) abort
+    let a:ctxCreateSource['hasCurrentSubscription'] = 0
+    let a:ctxCreateSource['finished'] = 1
+    call a:ctxCreateSource['o']['error'](a:err)
+    call a:ctxCreateSource['unsubscribe']()
+endfunction
+
+function! s:switchMapMappedObserverCompleteFn(ctxCreateSource) abort
+    let a:ctxCreateSource['hasCurrentSubscription'] = 0
+    if a:ctxCreateSource['completed'] && !a:ctxCreateSource['finished']
+        let a:ctxCreateSource['finished'] = 1
+        call a:ctxCreateSource['o']['complete']()
+    endif
+endfunction
+
+function! s:switchMapObserverNextFn(ctxCreateSource, value) abort
+    call a:ctxCreateSource['unsubscribePrevious']()
+    let a:ctxCreateSource['hasCurrentSubscription'] = 1
+    let l:Source = a:ctxCreateSource['ctxSource']['ctx']['mapper'](a:value)
+    let a:ctxCreateSource['unsubscribePrevious'] = callbag#subscribe(a:ctxCreateSource['mappedObserver'])(l:Source)
+endfunction
+
+function! s:switchMapObserverErrorFn(ctxCreateSource, err) abort
+    let a:ctxCreateSource['completed'] = 1
+    let a:ctxCreateSource['finished'] = 1
+    call a:ctxCreateSource['unsubscribePrevious']()
+    call a:ctxCreateSource['o']['error'](a:err)
+endfunction
+
+function! s:switchMapObserverCompleteFn(ctxCreateSource) abort
+    let a:ctxCreateSource['completed'] = 1
+    if !a:ctxCreateSource['hasCurrentSubscription'] && !a:ctxCreateSource['finished']
+        let a:ctxCreateSource['finished'] = 1
+        call a:ctxCreateSource['o']['complete']()
+    endif
+endfunction
+
+function! s:switchMapDisposeFn(ctxCreateSource) abort
+    call a:ctxCreateSource['unsubscribePrevious']()
+    call a:ctxCreateSource['unsubscribe']()
+endfunction
+" }}}
+
 " reduce() {{{
 function! callbag#reduce(reducer, seed) abort
     let l:ctx = { 'reducer': a:reducer, 'seed': a:seed }
