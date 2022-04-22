@@ -422,24 +422,24 @@ function! callbag#scan(reducer, seed) abort
 endfunction
 
 function! s:scanFn(ctx, source) abort
-    let a:ctx['source'] = a:source
-    return callbag#createSource(function('s:scanCreateSourceFn', [a:ctx]))
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:scanCreateSourceFn', [l:ctxSource]))
 endfunction
 
-function! s:scanCreateSourceFn(ctx, o) abort
-    let a:ctx['o'] = a:o
-    let a:ctx['acc'] = a:ctx['seed']
+function! s:scanCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o,
+        \ 'acc': a:ctxSource['ctx']['seed'] }
     let l:observer = {
-        \ 'next': function('s:scanNextFn', [a:ctx]),
+        \ 'next': function('s:scanNextFn', [l:ctxCreateSource]),
         \ 'error': a:o.error,
         \ 'complete': a:o.complete,
         \ }
-    return callbag#subscribe(l:observer)(a:ctx['source'])
+    return callbag#subscribe(l:observer)(a:ctxSource['source'])
 endfunction
 
-function! s:scanNextFn(ctx, value) abort
-    let a:ctx['acc'] = a:ctx['reducer'](a:ctx['acc'], a:value)
-    call a:ctx['o']['next'](a:ctx['acc'])
+function! s:scanNextFn(ctxCreateSource, value) abort
+    let a:ctxCreateSource['acc'] = a:ctxCreateSource['ctxSource']['ctx']['reducer'](a:ctxCreateSource['acc'], a:value)
+    call a:ctxCreateSource['o']['next'](a:ctxCreateSource['acc'])
 endfunction
 " }}}
 
