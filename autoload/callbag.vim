@@ -74,7 +74,7 @@ function! s:subscribeSinkFn(ctxSource, t, d) abort
         if callbag#isUndefined(a:d)
             if has_key(a:ctxSource['ctxListener']['o'], 'complete') | call a:ctxSource['ctxListener']['o']['complete']() | endif
         else
-            if has_key(a:ctxSrouce['ctxListener']['o'], 'error') | call a:ctxSource['ctsListener']['o']['error'](a:d) | endif
+            if has_key(a:ctxSource['ctxListener']['o'], 'error') | call a:ctxSource['ctxListener']['o']['error'](a:d) | endif
         endif
     endif
 endfunction
@@ -207,6 +207,22 @@ endfunction
 function! callbag#interval(period) abort
     return callbag#timer(a:period, a:period)
 endfunction
+" }}}
+
+" throwError() {{{
+function! callbag#throwError(err) abort
+    let l:ctx = { 'error': a:err }
+    return callbag#createSource(function('s:throwErrorCreateSourceFn', [l:ctx]))
+endfunction
+
+function s:throwErrorCreateSourceFn(ctxCreateSource, o) abort
+    if type(a:ctxCreateSource['error']) == s:func_type
+        call a:o['error'](a:ctxCreateSource['error']())
+    else
+        call a:o['error'](a:ctxCreateSource['error'])
+    endif
+endfunction
+
 " }}}
 
 " timer() {{{
