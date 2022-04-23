@@ -84,6 +84,32 @@ function! s:subscribeDispose(ctxSource) abort
 endfunction
 " }}}
 
+" Notifications {{{
+function! callbag#createNextNotification(d) abort
+    return { 'kind': 'N', 'value': a:d }
+endfunction
+
+function! callbag#createCompleteNotification() abort
+    return { 'kind': 'C' }
+endfunction
+
+function! callbag#createErrorNotification(d) abort
+    return { 'kind': 'E', 'error': a:d }
+endfunction
+
+function! callbag#isNextNotification(d) abort
+    return a:d['kind'] ==# 'N'
+endfunction
+
+function! callbag#isCompleteNotification(d) abort
+    return a:d['kind'] ==# 'C'
+endfunction
+
+function! callbag#isErrorNotification(d) abort
+    return a:d['kind'] ==# 'E'
+endfunction
+" }}}
+
 " }}}
 
 " ***** SOURCES ***** {{{
@@ -525,6 +551,41 @@ endfunction
 
 function! s:mapToFn(value, ...) abort
     return a:value
+endfunction
+" }}}
+
+" materialize() {{{
+function! callbag#materialize() abort
+    return function('s:materializeFn')
+endfunction
+
+function! s:materializeFn(source) abort
+    let l:ctxSource = { 'source': a:source }
+    return callbag#createSource(function('s:materializeCreateSource', [l:ctxSource]))
+endfunction
+
+function! s:materializeCreateSource(ctxSource, o) abort
+    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o }
+    let l:observer = {
+        \ 'next': function('s:materializeNextFn', [l:ctxCreateSource]),
+        \ 'error': function('s:materializeErrorFn', [l:ctxCreateSource]),
+        \ 'complete': function('s:materializeCompleteFn', [l:ctxCreateSource]),
+        \ }
+    return callbag#subscribe(l:observer)(a:ctxSource['source'])
+endfunction
+
+function! s:materializeNextFn(ctxCreateSource, value) abort
+    call a:ctxCreateSource['o']['next'](callbag#createNextNotification(a:value))
+endfunction
+
+function! s:materializeErrorFn(ctxCreateSource, err) abort
+    call a:ctxCreateSource['o']['next'](callbag#createErrorNotification(a:err))
+    call a:ctxCreateSource['o']['complete']()
+endfunction
+
+function! s:materializeCompleteFn(ctxCreateSource) abort
+    call a:ctxCreateSource['o']['next'](callbag#createCompleteNotification())
+    call a:ctxCreateSource['o']['complete']()
 endfunction
 " }}}
 
