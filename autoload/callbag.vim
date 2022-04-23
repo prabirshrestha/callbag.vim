@@ -269,6 +269,40 @@ endfunction
 
 " ***** OPERATORS ***** {{{
 
+" distinctUntilChanged() {{{
+function! callbag#distinctUntilChanged() abort
+    let l:ctx = { 'comparator': a:0 == 0 ? function('s:distinctUntilChangedDefaultComparator') : a:1 }
+    return function('s:distinctUntilChangedFn', [l:ctx])
+endfunction
+
+function! s:distinctUntilChangedFn(ctx, source) abort
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:distinctUntilChangedCreateSourceFn', [l:ctxSource]))
+endfunction
+
+function! s:distinctUntilChangedCreateSourceFn(ctxSource, o) abort
+    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o, 'first': 1 }
+    let l:observer = {
+        \ 'next': function('s:distinctUntilChangedNextFn', [l:ctxCreateSource]),
+        \ 'error': a:o['error'],
+        \ 'complete': a:o['complete'],
+        \ }
+    return callbag#subscribe(l:observer)(a:ctxSource['source'])
+endfunction
+
+function! s:distinctUntilChangedNextFn(ctxCreateSource, value) abort
+    if a:ctxCreateSource['first'] || !a:ctxCreateSource['ctxSource']['ctx']['comparator'](a:ctxCreateSource['previous'], a:value)
+        let a:ctxCreateSource['first'] = 0
+        let a:ctxCreateSource['previous'] = a:value
+        call a:ctxCreateSource['o']['next'](a:value)
+    endif
+endfunction
+
+function! s:distinctUntilChangedDefaultComparator(a, b) abort
+    return a:a == a:b
+endfunction
+" }}}
+
 " filter() {{{
 function! callbag#filter(predicate) abort
     let l:ctx = { 'predicate': a:predicate }
