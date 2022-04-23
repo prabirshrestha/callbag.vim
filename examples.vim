@@ -5,7 +5,7 @@ endfunction
 function! callbag#demo() abort
     " simulate async
     call callbag#pipe(
-        \   callbag#of(1,2,3, 4, 5),
+        \   callbag#of(1, 2, 3, 4, 5),
         \   callbag#flatMap({x->
         \       callbag#pipe(
         \           callbag#timer(rand(s:seed) % 10000),

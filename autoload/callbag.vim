@@ -269,6 +269,61 @@ endfunction
 
 " ***** OPERATORS ***** {{{
 
+" debounceTime() {{{
+function! callbag#debounceTime(dueTime) abort
+    let l:ctx = { 'dueTime': a:dueTime }
+    return function('s:debounceTimeFn', [l:ctx])
+endfunction
+
+function! s:debounceTimeFn(ctx, source) abort
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:debounceTimeCreateSource', [l:ctxSource]))
+endfunction
+
+function! s:debounceTimeCreateSource(ctxSource, o) abort
+    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o }
+
+    let l:observer = {
+        \ 'next': function('s:debounceNextFn', [l:ctxCreateSource]),
+        \ 'error': function('s:debounceErrorFn', [l:ctxCreateSource]),
+        \ 'complete': function('s:debounceCompleteFn', [l:ctxCreateSource]),
+        \ }
+
+    let l:ctxCreateSource['unsubscribe'] = callbag#subscribe(l:observer)(a:ctxSource['source'])
+
+    return function('s:debounceTimeDisposeFn', [l:ctxCreateSource])
+endfunction
+
+function! s:debounceNextFn(ctxCreateSource, value) abort
+    if has_key(a:ctxCreateSource, 'timerId') | call timer_stop(a:ctxCreateSource['timerId']) | endif
+    let a:ctxCreateSource['lastValue'] = a:value
+
+    let a:ctxCreateSource['timerId'] = timer_start(a:ctxCreateSource['ctxSource']['ctx']['dueTime'], function('s:debounceTimeTimerCb', [a:ctxCreateSource]))
+endfunction
+
+function! s:debounceTimeTimerCb(ctxCreateSource, ...) abort
+    call a:ctxCreateSource['o']['next'](a:ctxCreateSource['lastValue'])
+endfunction
+
+function! s:debounceErrorFn(ctxCreateSource, err) abort
+    if has_key(a:ctxCreateSource, 'timerId') | call timer_stop(a:ctxCreateSource['timerId']) | endif
+    call a:ctxCreateSource['o']['error'](a:err)
+endfunction
+
+function! s:debounceCompleteFn(ctxCreateSource) abort
+    if has_key(a:ctxCreateSource, 'timerId') | call timer_stop(a:ctxCreateSource['timerId']) | endif
+    call a:ctxCreateSource['o']['complete']()
+endfunction
+
+function! s:debounceTimeDisposeFn(ctxCreateSource) abort
+    if has_key(a:ctxCreateSource, 'timerId')
+        call timer_stop(a:ctxCreateSource['timerId'])
+        call remove(a:ctxCreateSource, 'timerId')
+    endif
+    call l:ctxCreateSource('unsubscribe')()
+endfunction
+" }}}
+
 " distinctUntilChanged() {{{
 function! callbag#distinctUntilChanged() abort
     let l:ctx = { 'comparator': a:0 == 0 ? function('s:distinctUntilChangedDefaultComparator') : a:1 }
