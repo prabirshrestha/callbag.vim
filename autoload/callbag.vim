@@ -232,6 +232,69 @@ function! callbag#of(...) abort
 endfunction
 " }}}
 
+" fromEvent() {{{
+let s:event_prefix_index = 0
+function! callbag#fromEvent(events, ...) abort
+    let l:data = { 'events': a:events }
+    if a:0 > 0
+        let l:data['augroup'] = a:1
+    else
+        let l:data['augroup'] = '__callbag_fromEvent_prefix_' . s:event_prefix_index . '__'
+        let s:event_prefix_index = s:event_prefix_index + 1
+    endif
+    return function('s:fromEventFactory', [l:data])
+endfunction
+
+let s:event_handler_index = 0
+let s:event_handlers_data = {}
+function! s:fromEventFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink']  = a:sink
+    let a:data['disposed'] = 0
+    let a:data['handler'] = function('s:fromEventHandlerCallback', [a:data])
+    let a:data['handler_index'] = s:event_handler_index
+    let s:event_handler_index = s:event_handler_index + 1
+    call a:sink(0, function('s:fromEventSinkHandler', [a:data]))
+
+    if a:data['disposed'] | return | endif
+    let s:event_handlers_data[a:data['handler_index']] = a:data
+
+    execute 'augroup ' . a:data['augroup']
+    execute 'autocmd!'
+    let l:events = type(a:data['events']) == type('') ? [a:data['events']] : a:data['events']
+    for l:event in l:events
+        let l:exec =  'call s:notify_event_handler(' . a:data['handler_index'] . ')'
+        if type(l:event) == type('')
+            execute 'au ' . l:event . ' * ' . l:exec
+        else
+            execute 'au ' . join(l:event, ' ') .' ' .  l:exec
+        endif
+    endfor
+    execute 'augroup end'
+endfunction
+
+function! s:fromEventHandlerCallback(data) abort
+    " send v:event if it exists
+    call a:data['sink'](1, callbag#undefined())
+endfunction
+
+function! s:fromEventSinkHandler(data, t, ...) abort
+    if a:t != 2 | return | endif
+    let a:data['disposed'] = 1
+    execute 'augroup ' a:data['augroup']
+    autocmd!
+    execute 'augroup end'
+    if has_key(s:event_handlers_data, a:data['handler_index'])
+        call remove(s:event_handlers_data, a:data['handler_index'])
+    endif
+endfunction
+
+function! s:notify_event_handler(index) abort
+    let l:data = s:event_handlers_data[a:index]
+    call l:data['handler']()
+endfunction
+" }}}
+
 " fromList() {{{
 function! callbag#fromList(values) abort
     let l:ctx = { 'values': a:values }
