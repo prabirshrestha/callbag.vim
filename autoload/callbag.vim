@@ -887,6 +887,76 @@ function! s:takeNextFn(ctxCreateSource, value) abort
 endfunction
 " }}}
 
+" takeUntil() {{{
+function! callbag#takeUntil(notfier) abort
+    let l:data = { 'notifier': a:notfier }
+    return function('s:takeUntilNotifier', [l:data])
+endfunction
+
+function! s:takeUntilNotifier(data, source) abort
+    let a:data['source'] = a:source
+    return function('s:takeUntilFactory', [a:data])
+endfunction
+
+let s:takeUntilUniqueToken = '__callback__take_until_unique_token__'
+
+function! s:takeUntilFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['inited'] = 1
+    let a:data['sourceTalkback'] = 0
+    let a:data['notiferTalkback'] = 0
+    let a:data['done'] = s:takeUntilUniqueToken
+    call a:data['source'](0, function('s:takeUntilSourceCallback', [a:data]))
+endfunction
+
+function! s:takeUntilSourceCallback(data, t, d) abort
+    if a:t == 0
+        let a:data['sourceTalkback'] = a:d
+        call a:data['notifier'](0, function('s:takeUntilNotifierCallback', [a:data]))
+        let a:data['inited'] = 1
+        call a:data['sink'](0, function('s:takeUntilSinkCallback', [a:data]))
+        if a:data['done'] != s:takeUntilUniqueToken | call a:data['sink'](2, a:data['done']) | endif
+        return
+    endif
+    if a:t == 2
+        call a:data['notifierTalkback'](2, callbag#undefined())
+    endif
+    if a:data['done'] == s:takeUntilUniqueToken
+        call a:data['sink'](a:t, a:d)
+    endif
+endfunction
+
+function! s:takeUntilNotifierCallback(data, t, d) abort
+    if a:t == 0
+        let a:data['notifierTalkback'] = a:d
+        call a:data['notifierTalkback'](1, callbag#undefined())
+        return
+    endif
+    if a:t == 1
+        let a:data['done'] = 0
+        call a:data['notifierTalkback'](2, callbag#undefined())
+        call a:data['sourceTalkback'](2, callbag#undefined())
+        if a:data['inited'] | call a:data['sink'](2, callbag#undefined()) | endif
+        return
+    endif
+    if a:t ==2
+        let a:data['notifierTalkback'] = 0
+        let a:data['done'] = a:d
+        if a:d != 0
+            call a:data['sourceTalkback'](2, callbag#undefined())
+            if a:data['inited'] | call a:data['sink'](a:t, a:d) | endif
+        endif
+    endif
+endfunction
+
+function! s:takeUntilSinkCallback(data, t, d) abort
+    if a:data['done'] != s:takeUntilUniqueToken | return | endif
+    if a:t == 2 && has_key(a:data, 'notifierTalkback') && a:data['notifierTalkback'] != 0 | call a:data['notifierTalkback'](2, callbag#undefined()) | endif
+    call a:data['sourceTalkback'](a:t, a:d)
+endfunction
+" }}}
+
 " tap {{{
 function! callbag#tap(...) abort
     let l:ctx = {}
