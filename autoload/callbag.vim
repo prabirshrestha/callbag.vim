@@ -646,6 +646,65 @@ function! s:materializeCompleteFn(ctxCreateSource) abort
 endfunction
 " }}}
 
+" merge() {{{
+function! callbag#merge(...) abort
+    let l:data = { 'sources': a:000 }
+    return function('s:mergeFactory', [l:data])
+endfunction
+
+function! s:mergeFactory(data, start, sink) abort
+    if a:start != 0 | return | endif
+    let a:data['sink'] = a:sink
+    let a:data['n'] = len(a:data['sources'])
+    let a:data['sourceTalkbacks'] = []
+    let a:data['startCount'] = 0
+    let a:data['endCount'] = 0
+    let a:data['ended'] = 0
+    let a:data['talkback'] = function('s:mergeTalkbackCallback', [a:data])
+    let l:i = 0
+    while l:i < a:data['n']
+        if a:data['ended'] | return | endif
+        call a:data['sources'][l:i](0, function('s:mergeSourceCallback', [a:data, l:i]))
+        let l:i += 1
+    endwhile
+endfunction
+
+function! s:mergeTalkbackCallback(data, t, d) abort
+    if a:t == 2 | let a:data['ended'] = 1 | endif
+    let l:i = 0
+    while l:i < a:data['n']
+        if l:i < len(a:data['sourceTalkbacks']) && a:data['sourceTalkbacks'][l:i] != 0
+            call a:data['sourceTalkbacks'][l:i](a:t, a:d)
+        endif
+        let l:i += 1
+    endwhile
+endfunction
+
+function! s:mergeSourceCallback(data, i, t, d) abort
+    if a:t == 0
+        call insert(a:data['sourceTalkbacks'], a:d, a:i)
+        let a:data['startCount'] += 1
+        if a:data['startCount'] == 1 | call a:data['sink'](0, a:data['talkback']) | endif
+    elseif a:t == 2 && !callbag#isUndefined(a:d)
+        let a:data['ended'] = 1
+        let l:j = 0
+        while l:j < a:data['n']
+            if l:j != a:i && l:j < len(a:data['sourceTalkbacks']) && a:data['sourceTalkbacks'][l:j] != 0
+                call a:data['sourceTalkbacks'][l:j](2, callbag#undefined())
+            endif
+            let l:j += 1
+        endwhile
+        call a:data['sink'](2, a:d)
+    elseif a:t == 2
+        let a:data['sourceTalkbacks'][a:i] = 0
+        let a:data['endCount'] += 1
+        if a:data['endCount'] == a:data['n'] | call a:data['sink'](2, callbag#undefined()) | endif
+    else
+        call a:data['sink'](a:t, a:d)
+    endif
+endfunction
+" }}}
+
 " scan() {{{
 function! callbag#scan(reducer, seed) abort
     let l:ctx = { 'reducer': a:reducer, 'seed': a:seed }
