@@ -112,6 +112,63 @@ endfunction
 
 " }}}
 
+" ***** SUBJECT ***** {{{
+
+" makeSubject() {{{
+function! callbag#makeSubject() abort
+    let l:ctx = { 'sinks': [] }
+    return function('s:makeSubjectFactory', [l:ctx])
+endfunction
+
+function! s:makeSubjectFactory(ctx, t, d) abort
+    if a:t == 0
+        let l:Sink = a:d
+        call add(a:ctx['sinks'], l:Sink)
+        call l:Sink(0, function('s:makeSubjectSinkCallback', [a:ctx, l:Sink]))
+    else
+        let l:zinkz = copy(a:ctx['sinks'])
+        let l:i = 0
+        let l:n = len(l:zinkz)
+        while l:i < l:n
+            let l:Sink = l:zinkz[l:i]
+            let l:j = -1
+            let l:found = 0
+            for l:Item in a:ctx['sinks']
+                let l:j += 1
+                if l:Item == l:Sink
+                    let l:found = 1
+                    break
+                endif
+            endfor
+
+            if l:found
+                call l:Sink(a:t, a:d)
+            endif
+            let l:i += 1
+        endwhile
+    endif
+endfunction
+
+function! s:makeSubjectSinkCallback(ctx, Sink, t, d) abort
+    if a:t == 2
+        let l:i = -1
+        let l:found = 0
+        for l:Item in a:ctx['sinks']
+            let l:i += 1
+            if l:Item == a:Sink
+                let l:found = 1
+                break
+            endif
+        endfor
+        if l:found
+            call remove(a:ctx['sinks'], l:i)
+        endif
+    endif
+endfunction
+" }}}
+
+" }}}
+
 " ***** SOURCES ***** {{{
 
 " createSource() {{{
