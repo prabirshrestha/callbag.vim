@@ -114,58 +114,64 @@ endfunction
 
 " ***** SUBJECT ***** {{{
 
-" makeSubject() {{{
-function! callbag#makeSubject() abort
-    let l:ctx = { 'sinks': [] }
-    return function('s:makeSubjectFactory', [l:ctx])
+" createSubject() {{{
+function! callbag#createSubject() abort
+    let l:ctx = { 'observers': [] }
+    let l:ctx['next'] = function('s:createSubjectNextFn', [l:ctx])
+    let l:ctx['error'] = function('s:createSubjectErrorFn', [l:ctx])
+    let l:ctx['complete'] = function('s:createSubjectCompleteFn', [l:ctx])
+    let l:ctx['unsubscribeSubject'] = function('s:createSubjectUnsubscribeSubjectFn', [l:ctx])
+    let l:ctx['subscribeSubject'] = function('s:createSubjectSubscribeSubjectFn', [l:ctx])
+    return {
+        \ 'next': l:ctx['next'],
+        \ 'error': l:ctx['error'],
+        \ 'complete': l:ctx['complete'],
+        \ 'subscribe': l:ctx['subscribeSubject'],
+        \ }
 endfunction
 
-function! s:makeSubjectFactory(ctx, t, d) abort
-    if a:t == 0
-        let l:Sink = a:d
-        call add(a:ctx['sinks'], l:Sink)
-        call l:Sink(0, function('s:makeSubjectSinkCallback', [a:ctx, l:Sink]))
-    else
-        let l:zinkz = copy(a:ctx['sinks'])
-        let l:i = 0
-        let l:n = len(l:zinkz)
-        while l:i < l:n
-            let l:Sink = l:zinkz[l:i]
-            let l:j = -1
-            let l:found = 0
-            for l:Item in a:ctx['sinks']
-                let l:j += 1
-                if l:Item == l:Sink
-                    let l:found = 1
-                    break
-                endif
-            endfor
-
-            if l:found
-                call l:Sink(a:t, a:d)
-            endif
-            let l:i += 1
-        endwhile
-    endif
+function! s:createSubjectNextFn(ctx, newValue) abort
+    for l:observer in a:ctx['observers']
+        if has_key(l:observer, 'next') | call l:observer['next'](a:newValue) | endif
+    endfor
 endfunction
 
-function! s:makeSubjectSinkCallback(ctx, Sink, t, d) abort
-    if a:t == 2
-        let l:i = -1
-        let l:found = 0
-        for l:Item in a:ctx['sinks']
-            let l:i += 1
-            if l:Item == a:Sink
-                let l:found = 1
-                break
-            endif
-        endfor
-        if l:found
-            call remove(a:ctx['sinks'], l:i)
+function! s:createSubjectErrorFn(ctx, error) abort
+    for l:observer in a:ctx['observers']
+        if has_key(l:observer, 'error') | call l:observer['error'](a:error) | endif
+    endfor
+endfunction
+
+function! s:createSubjectCompleteFn(ctx, newVaue) abort
+    for l:observer in a:ctx['observers']
+        if has_key(l:observer, 'complete') | call l:observer['complete']() | endif
+    endfor
+endfunction
+
+function! s:createSubjectUnsubscribeSubjectFn(ctx, observer) abort
+    let l:i = -1
+    let l:found = 0
+    for l:observer in a:ctx['observers']
+        let l:i += 1
+        if l:observer == a:observer
+            let l:found = 1
+            break
         endif
+    endfor
+    if l:found
+        call remove(a:ctx['observers'], l:i)
     endif
 endfunction
-" }}}
+
+function! s:createSubjectSubscribeSubjectFn(ctx, listener) abort
+    let l:observer = type(a:listener) == s:func_type ? { 'next': a:listener } : a:listener
+    call add(a:ctx['observers'], l:observer)
+    return function('s:createSubjectSubscribeSubjectUnsubscribeFn', [a:ctx, l:observer])
+endfunction
+
+function! s:createSubjectSubscribeSubjectUnsubscribeFn(ctx, observer) abort
+    call a:ctx['unsubscribeSubjet'](a:observer)
+endfunction
 
 " }}}
 
