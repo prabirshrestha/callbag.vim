@@ -739,62 +739,90 @@ function! s:materializeCompleteFn(ctxCreateSource) abort
 endfunction
 " }}}
 
+" mergePool() {{{
+function! callbag#mergePool(sources, size) abort
+    let l:ctx = { 'sources': a:sources }
+    let l:ctx['size'] = a:size == -1 ? len(a:sources) : a:size " -1 for all parallel
+    return callbag#createSource(function('s:mergePoolCreateSourceFn', [l:ctx]))
+endfunction
+
+function! s:mergePoolCreateSourceFn(ctx, o) abort
+    let l:ctxCreateSource = {
+        \ 'ctx': a:ctx,
+        \ 'o': a:o,
+        \ 'nbSources': len(a:ctx['sources']),
+        \ 'nbStarted': 0,
+        \ 'nbFinished': 0,
+        \ 'finished': 0,
+        \ 'unsubscribeFuncs': [],
+        \ }
+    for l:I in a:ctx['sources']
+        call add(l:ctxCreateSource['unsubscribeFuncs'], function('s:noop'))
+    endfor
+
+    let l:ctxCreateSource['handleComplete'] = function('s:mergePoolHandleCompleteFn', [l:ctxCreateSource])
+    let l:ctxCreateSource['startSource'] = function('s:mergePoolStartSourceFn', [l:ctxCreateSource])
+
+    let l:nbToStart = min([l:ctxCreateSource['nbSources'], a:ctx['size']])
+    while l:ctxCreateSource['nbStarted'] < l:nbToStart
+        call l:ctxCreateSource['startSource'](l:ctxCreateSource['nbStarted'])
+    endwhile
+
+    return function('s:mergePoolUnsubscribeFn', [l:ctxCreateSource])
+endfunction
+
+function! s:mergePoolHandleCompleteFn(ctxCreateSource) abort
+    let a:ctxCreateSource['nbFinished'] += 1
+    let a:ctxCreateSource['finished'] = a:ctxCreateSource['finished'] || a:ctxCreateSource['nbFinished'] == a:ctxCreateSource['nbSources']
+    if a:ctxCreateSource['finished']
+        call a:ctxCreateSource['o']['complete']()
+    elseif a:ctxCreateSource['nbStarted'] < a:ctxCreateSource['nbSources']
+        " start sources which hasn't started
+        call a:ctxCreateSource['startSource'](a:ctxCreateSource['nbStarted'])
+    endif
+    " all sources have started but some haven't finished
+endfunction
+
+function! s:mergePoolStartSourceFn(ctxCreateSource, index) abort
+    let a:ctxCreateSource['nbStarted'] += 1
+    let l:ctxStartSource = { 'ctxCreateSource': a:ctxCreateSource, 'index': a:index }
+    let a:ctxCreateSource['unsubscribeFuncs'][a:index] = callbag#subscribe({
+        \ 'next': a:ctxCreateSource['o'].next,
+        \ 'error': function('s:mergePoolStartSourceHandleErrorFn', [l:ctxStartSource]),
+        \ 'complete': a:ctxCreateSource['handleComplete'],
+        \ })(a:ctxCreateSource['ctx']['sources'][a:index])
+endfunction
+
+function! s:mergePoolStartSourceHandleErrorFn(ctxStartSource, error) abort
+    let a:ctxStartSource['ctxCreateSource']['finished'] = 1
+
+    let l:j = 0
+    while l:j < a:ctxStartSource['ctxCreateSource']['nbSources']
+        if l:j != a:ctxStartSource['index']
+            " if callbag fail we unsubscribe other sources
+            let l:UnsubscribeFun = get(a:ctxStartSource['ctxCreateSource']['unsubscribeFuncs'], l:j, function('s:noop'))
+            call l:UnsubscribeFun()
+        endif
+        let l:j += 1
+    endwhile
+
+    call a:ctxStartSource['ctxCreateSource'].o.error(a:error)
+endfunction
+
+function! s:mergePoolUnsubscribeFn(ctxCreateSource) abort
+    let a:ctxCreateSource['finished'] = 1
+    let l:i = 0
+    while l:i < a:ctxCreateSource['nbSources']
+        let l:unsubscribeFunc = get(a:ctxCreateSource['unsubscribeFuncs'], l:i, function('s:noop'))
+        call l:unsubscribeFunc()
+        let l:i += 1
+    endwhile
+endfunction
+" }}}
+
 " merge() {{{
 function! callbag#merge(...) abort
-    let l:data = { 'sources': a:000 }
-    return function('s:mergeFactory', [l:data])
-endfunction
-
-function! s:mergeFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    let a:data['n'] = len(a:data['sources'])
-    let a:data['sourceTalkbacks'] = []
-    let a:data['startCount'] = 0
-    let a:data['endCount'] = 0
-    let a:data['ended'] = 0
-    let a:data['talkback'] = function('s:mergeTalkbackCallback', [a:data])
-    let l:i = 0
-    while l:i < a:data['n']
-        if a:data['ended'] | return | endif
-        call a:data['sources'][l:i](0, function('s:mergeSourceCallback', [a:data, l:i]))
-        let l:i += 1
-    endwhile
-endfunction
-
-function! s:mergeTalkbackCallback(data, t, d) abort
-    if a:t == 2 | let a:data['ended'] = 1 | endif
-    let l:i = 0
-    while l:i < a:data['n']
-        if l:i < len(a:data['sourceTalkbacks']) && a:data['sourceTalkbacks'][l:i] != 0
-            call a:data['sourceTalkbacks'][l:i](a:t, a:d)
-        endif
-        let l:i += 1
-    endwhile
-endfunction
-
-function! s:mergeSourceCallback(data, i, t, d) abort
-    if a:t == 0
-        call insert(a:data['sourceTalkbacks'], a:d, a:i)
-        let a:data['startCount'] += 1
-        if a:data['startCount'] == 1 | call a:data['sink'](0, a:data['talkback']) | endif
-    elseif a:t == 2 && !callbag#isUndefined(a:d)
-        let a:data['ended'] = 1
-        let l:j = 0
-        while l:j < a:data['n']
-            if l:j != a:i && l:j < len(a:data['sourceTalkbacks']) && a:data['sourceTalkbacks'][l:j] != 0
-                call a:data['sourceTalkbacks'][l:j](2, callbag#undefined())
-            endif
-            let l:j += 1
-        endwhile
-        call a:data['sink'](2, a:d)
-    elseif a:t == 2
-        let a:data['sourceTalkbacks'][a:i] = 0
-        let a:data['endCount'] += 1
-        if a:data['endCount'] == a:data['n'] | call a:data['sink'](2, callbag#undefined()) | endif
-    else
-        call a:data['sink'](a:t, a:d)
-    endif
+    return callbag#mergePool(a:000, a:0)
 endfunction
 " }}}
 
