@@ -142,7 +142,7 @@ function! s:createSubjectErrorFn(ctx, error) abort
     endfor
 endfunction
 
-function! s:createSubjectCompleteFn(ctx, newVaue) abort
+function! s:createSubjectCompleteFn(ctx) abort
     for l:observer in a:ctx['observers']
         if has_key(l:observer, 'complete') | call l:observer['complete']() | endif
     endfor
@@ -170,9 +170,33 @@ function! s:createSubjectSubscribeSubjectFn(ctx, listener) abort
 endfunction
 
 function! s:createSubjectSubscribeSubjectUnsubscribeFn(ctx, observer) abort
-    call a:ctx['unsubscribeSubjet'](a:observer)
+    call a:ctx['unsubscribeSubject'](a:observer)
+endfunction
+" }}}
+
+" createBehaviorSubject() {{{
+function! callbag#createBehaviorSubject(initialValue) abort
+    let l:ctx = { 'subject': callbag#createSubject(), 'lastValue': a:initialValue }
+    let l:ctx['subscribeSubject'] = function('s:createBehaviorSubjectSubscribeSubjectFn', [l:ctx])
+    let l:ctx['subscribeSubjectNextFn'] = function('s:createBehaviorSubjectNextFn', [l:ctx])
+    return {
+        \ 'next': l:ctx['subscribeSubjectNextFn'],
+        \ 'error': l:ctx['subject']['error'],
+        \ 'complete': l:ctx['subject']['complete'],
+        \ 'subscribe': l:ctx['subscribeSubject']
+        \ }
 endfunction
 
+function! s:createBehaviorSubjectSubscribeSubjectFn(ctx, listener) abort
+    let l:observer = type(a:listener) == s:func_type ? { 'next': a:listener } : a:listener
+    if has_key(l:observer, 'next') | call l:observer['next'](a:ctx['lastValue']) | endif
+    return a:ctx['subject']['subscribe'](l:observer)
+endfunction
+
+function! s:createBehaviorSubjectNextFn(ctx, newValue) abort
+    let a:ctx['lastValue'] = a:newValue
+    call a:ctx['subject']['next'](a:newValue)
+endfunction
 " }}}
 
 " ***** SOURCES ***** {{{

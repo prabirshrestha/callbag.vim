@@ -25,13 +25,13 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | subscribe                                              |
 | Yes           | toList                                                 |
 
-## Multicasting
+## Subjects
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
-| Yes           | makeSubject                                            |
+| Yes           | createSubject                                          |
+| Yes           | createBehaviorSubject                                 |
 | Yes           | share                                                  |
-| No            | makeBehaviorSubject                                    |
 
 ## Operators
 
