@@ -1068,72 +1068,54 @@ endfunction
 " }}}
 
 " takeUntil() {{{
-function! callbag#takeUntil(notfier) abort
-    let l:data = { 'notifier': a:notfier }
-    return function('s:takeUntilNotifier', [l:data])
+function! callbag#takeUntil(notifier) abort
+    let l:ctx = { 'notifier': a:notifier }
+    return function('s:takeUntilFn', [l:ctx])
 endfunction
 
-function! s:takeUntilNotifier(data, source) abort
-    let a:data['source'] = a:source
-    return function('s:takeUntilFactory', [a:data])
+function! s:takeUntilFn(ctx, source) abort
+    let l:ctxSource = { 'ctx': a:ctx, 'source': a:source }
+    return callbag#createSource(function('s:takeUntilCreateSource', [l:ctxSource]))
 endfunction
 
-let s:takeUntilUniqueToken = '__callback__take_until_unique_token__'
+function! s:takeUntilCreateSource(ctxSource, o) abort
+    let l:ctxTakeUntilCreateSource = {
+        \ 'ctxSource': a:ctxSource,
+        \ 'o': a:o,
+        \ 'sourceUnsubscribe': function('s:noop'),
+        \ 'notifierUnsubscribe': function('s:noop'),
+        \ }
 
-function! s:takeUntilFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink'] = a:sink
-    let a:data['inited'] = 1
-    let a:data['sourceTalkback'] = 0
-    let a:data['notiferTalkback'] = 0
-    let a:data['done'] = s:takeUntilUniqueToken
-    call a:data['source'](0, function('s:takeUntilSourceCallback', [a:data]))
+    let l:observer = {
+        \ 'next': function('s:takeUntilNextFn', [l:ctxTakeUntilCreateSource]),
+        \ 'error': a:o['error'],
+        \ 'complete': function('s:noop')
+        \ }
+
+    let l:ctxTakeUntilCreateSource['sourceUnsubscribe'] = callbag#subscribe(l:observer)(a:ctxSource['source'])
+
+    let l:notifierObserver = {
+        \ 'next': function('s:takeUntilNotifierObserverNextFn', [l:ctxTakeUntilCreateSource]),
+        \ 'error': a:o['error'],
+        \ 'complete': function('s:noop')
+        \ }
+    let l:ctxTakeUntilCreateSource['notifierUnsubscribe'] = callbag#subscribe(l:notifierObserver)(l:ctxTakeUntilCreateSource['ctxSource']['ctx']['notifier'])
+
+    return function('s:takeUntilDisposeFn', [l:ctxTakeUntilCreateSource])
 endfunction
 
-function! s:takeUntilSourceCallback(data, t, d) abort
-    if a:t == 0
-        let a:data['sourceTalkback'] = a:d
-        call a:data['notifier'](0, function('s:takeUntilNotifierCallback', [a:data]))
-        let a:data['inited'] = 1
-        call a:data['sink'](0, function('s:takeUntilSinkCallback', [a:data]))
-        if a:data['done'] != s:takeUntilUniqueToken | call a:data['sink'](2, a:data['done']) | endif
-        return
-    endif
-    if a:t == 2
-        call a:data['notifierTalkback'](2, callbag#undefined())
-    endif
-    if a:data['done'] == s:takeUntilUniqueToken
-        call a:data['sink'](a:t, a:d)
-    endif
+function! s:takeUntilDisposeFn(ctxTakeUntilCreateSource) abort
+    call a:ctxTakeUntilCreateSource['sourceUnsubscribe']()
+    call a:ctxTakeUntilCreateSource['notifierUnsubscribe']()
 endfunction
 
-function! s:takeUntilNotifierCallback(data, t, d) abort
-    if a:t == 0
-        let a:data['notifierTalkback'] = a:d
-        call a:data['notifierTalkback'](1, callbag#undefined())
-        return
-    endif
-    if a:t == 1
-        let a:data['done'] = 0
-        call a:data['notifierTalkback'](2, callbag#undefined())
-        call a:data['sourceTalkback'](2, callbag#undefined())
-        if a:data['inited'] | call a:data['sink'](2, callbag#undefined()) | endif
-        return
-    endif
-    if a:t ==2
-        let a:data['notifierTalkback'] = 0
-        let a:data['done'] = a:d
-        if a:d != 0
-            call a:data['sourceTalkback'](2, callbag#undefined())
-            if a:data['inited'] | call a:data['sink'](a:t, a:d) | endif
-        endif
-    endif
+function! s:takeUntilNextFn(ctxTakeUntilCreateSource, value) abort
+    call a:ctxTakeUntilCreateSource['o']['next'](a:value)
 endfunction
 
-function! s:takeUntilSinkCallback(data, t, d) abort
-    if a:data['done'] != s:takeUntilUniqueToken | return | endif
-    if a:t == 2 && has_key(a:data, 'notifierTalkback') && a:data['notifierTalkback'] != 0 | call a:data['notifierTalkback'](2, callbag#undefined()) | endif
-    call a:data['sourceTalkback'](a:t, a:d)
+function! s:takeUntilNotifierObserverNextFn(ctxTakeUntilCreateSource, value) abort
+    call a:ctxTakeUntilCreateSource['sourceUnsubscribe']()
+    call a:ctxTakeUntilCreateSource['o']['complete']()
 endfunction
 " }}}
 
