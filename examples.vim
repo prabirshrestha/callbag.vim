@@ -195,15 +195,29 @@ function! callbag#demo() abort
     call l:Subject(1, 'world')
     call l:Subject(2, callbag#undefined())
 
-    let l:ShareSouce = callbag#share(callbag#interval(1000))
+
+    let s:ShareSource = callbag#share()(
+        \ callbag#pipe(
+        \   callbag#interval(1000),
+        \   callbag#take(10),
+        \ )
+        \ )
     call callbag#pipe(
-        \ l:ShareSouce,
-        \ callbag#subscribe({x->s:log('first ' . x)})
+        \ s:ShareSource,
+        \ callbag#subscribe({
+        \   'next': {x->s:log(['first',x])},
+        \   'complete': {->s:log(['first','complete'])},
+        \ })
         \ )
     call timer_start(3500, {->callbag#pipe(
-                \ l:ShareSouce,
-                \ callbag#subscribe({x->s:log('second ' . x)})
-                \ )})
+        \ s:ShareSource,
+        \ callbag#subscribe({
+        \   'next': {x->s:log(['second',x])},
+        \   'complete': {->s:log(['second','complete'])},
+        \ })
+        \ )})
+
+
     call callbag#pipe(
         \ callbag#of(1, 1, 2, 3, 3, 3, 4, 1, 5),
         \ callbag#distinctUntilChanged(),

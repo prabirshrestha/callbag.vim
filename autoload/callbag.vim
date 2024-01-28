@@ -398,7 +398,6 @@ function s:throwErrorCreateSourceFn(ctxCreateSource, o) abort
         call a:o['error'](a:ctxCreateSource['error'])
     endif
 endfunction
-
 " }}}
 
 " timer() {{{
@@ -854,65 +853,6 @@ function! s:scanNextFn(ctxCreateSource, value) abort
 endfunction
 " }}}
 
-" {{{
-function! callbag#share(source) abort
-    let l:data = { 'source': a:source, 'sinks': [] }
-    return function('s:shareFactory', [l:data])
-endfunction
-
-function! s:shareFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    call add(a:data['sinks'], a:sink)
-
-    let a:data['talkback'] = function('s:shareTalkbackCallback', [a:data, a:sink])
-
-    if len(a:data['sinks']) == 1
-        call a:data['source'](0, function('s:shareSourceCallback', [a:data, a:sink]))
-        return
-    endif
-
-    call a:sink(0, a:data['talkback'])
-endfunction
-
-function! s:shareTalkbackCallback(data, sink, t, d) abort
-    if a:t == 2
-        let l:i = 0
-        let l:found = 0
-        while l:i < len(a:data['sinks'])
-            if a:data['sinks'][l:i] == a:sink
-                let l:found = 1
-                break
-            endif
-            let l:i += 1
-        endwhile
-
-        if l:found
-            call remove(a:data['sinks'], l:i)
-        endif
-
-        if empty(a:data['sinks'])
-            call a:data['sourceTalkback'](2, callbag#undefined())
-        endif
-    else
-        call a:data['sourceTalkback'](a:t, a:d)
-    endif
-endfunction
-
-function! s:shareSourceCallback(data, sink, t, d) abort
-    if a:t == 0
-        let a:data['sourceTalkback'] = a:d
-        call a:sink(0, a:data['talkback'])
-    else
-        for l:S in a:data['sinks']
-            call l:S(a:t, a:d)
-        endfor
-    endif
-    if a:t == 2
-        let a:data['sinks'] = []
-    endif
-endfunction
-" }}}
-
 " switchMap() {{{
 function! callbag#switchMap(mapper) abort
     let l:ctx = { 'mapper': a:mapper }
@@ -925,7 +865,9 @@ function! s:switchMapFn(ctx, source) abort
 endfunction
 
 function! s:switchMapCreateSourceFn(ctxSource, o) abort
-    let l:ctxCreateSource = { 'ctxSource': a:ctxSource, 'o': a:o,
+    let l:ctxCreateSource = {
+        \ 'ctxSource': a:ctxSource,
+        \ 'o': a:o,
         \ 'hasCurrentSubscription': 0,
         \ 'completed': 0,
         \ 'finished': 0,
@@ -986,6 +928,73 @@ endfunction
 function! s:switchMapDisposeFn(ctxCreateSource) abort
     call a:ctxCreateSource['unsubscribePrevious']()
     call a:ctxCreateSource['unsubscribe']()
+endfunction
+" }}}
+
+" share() {{{
+function! callbag#share() abort
+    let l:ctx = {}
+    return function('s:shareFn', [l:ctx])
+endfunction
+
+function! s:shareFn(ctx, source) abort
+    let l:ctxSource = {
+        \ 'ctx': a:ctx,
+        \ 'source': a:source,
+        \ 'observers': [],
+        \ 'isRunning': 0,
+        \ }
+    return callbag#createSource(function('s:shareCreateSourceFn', [l:ctxSource]))
+endfunction
+
+function! s:shareCreateSourceFn(ctxSource, o) abort
+    call add(a:ctxSource['observers'], a:o)
+
+    if !a:ctxSource['isRunning']
+        let a:ctxSource['isRunning'] = 1
+        let l:observer = {
+            \ 'next': function('s:shareNextFn', [a:ctxSource]),
+            \ 'error': function('s:shareErrorFn', [a:ctxSource]),
+            \ 'complete': function('s:shareCompleteFn', [a:ctxSource]),
+            \ }
+        call callbag#subscribe(l:observer)(a:ctxSource['source'])
+    endif
+
+    return function('s:shareDisposeFn', [a:ctxSource, a:o])
+endfunction
+
+function! s:shareNextFn(ctxSource, value) abort
+    for l:observer in a:ctxSource['observers']
+        call l:observer['next'](a:value)
+    endfor
+endfunction
+
+function! s:shareErrorFn(ctxSource, err) abort
+    for l:observer in a:ctxSource['observers']
+        call l:observer['error'](a:err)
+    endfor
+endfunction
+
+function! s:shareCompleteFn(ctxSource) abort
+    for l:observer in a:ctxSource['observers']
+        call l:observer['complete']()
+    endfor
+endfunction
+
+function! s:shareDisposeFn(ctxSource, o) abort
+    let l:i = 0
+    let l:len = len(a:ctxSource['observers'])
+    while l:i < l:len
+        let l:observer = a:ctxSource['observers'][l:i]
+        if l:observer == a:o
+            call remove(a:ctxSource['observers'], l:i)
+            break
+        endif
+        let l:i += 1
+    endwhile
+    if len(a:ctxSource['observers']) == 0 && has_key(a:ctxSource, 'unsubscribe'))
+      call a:ctxSource['unsubscribe']()
+    endif
 endfunction
 " }}}
 
