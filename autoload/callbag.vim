@@ -263,37 +263,20 @@ endfunction
 " }}}
 
 " fromEvent() {{{
-let s:event_prefix_index = 0
-function! callbag#fromEvent(events, ...) abort
-    let l:data = { 'events': a:events }
-    if a:0 > 0
-        let l:data['augroup'] = a:1
-    else
-        let l:data['augroup'] = '__callbag_fromEvent_prefix_' . s:event_prefix_index . '__'
-        let s:event_prefix_index = s:event_prefix_index + 1
-    endif
-    return function('s:fromEventFactory', [l:data])
+let s:fromEventGroupNameIndex = 0
+function! s:fromEventGenerateListenerGroupName() abort
+    let s:fromEventGroupNameIndex = s:fromEventGroupNameIndex + 1
+    return '__callbag_fromEvent_' . s:fromEventGroupNameIndex . '__'
 endfunction
 
-let s:event_handler_index = 0
-let s:event_handlers_data = {}
-function! s:fromEventFactory(data, start, sink) abort
-    if a:start != 0 | return | endif
-    let a:data['sink']  = a:sink
-    let a:data['disposed'] = 0
-    let a:data['handler'] = function('s:fromEventHandlerCallback', [a:data])
-    let a:data['handler_index'] = s:event_handler_index
-    let s:event_handler_index = s:event_handler_index + 1
-    call a:sink(0, function('s:fromEventSinkHandler', [a:data]))
-
-    if a:data['disposed'] | return | endif
-    let s:event_handlers_data[a:data['handler_index']] = a:data
-
-    execute 'augroup ' . a:data['augroup']
+let s:fromEventHandlerCallbacks = {}
+function! s:fromEventAddListener(events, callback, groupName) abort
+    let s:fromEventHandlerCallbacks[a:groupName] = a:callback
+    execute 'augroup ' . a:groupName
     execute 'autocmd!'
-    let l:events = type(a:data['events']) == type('') ? [a:data['events']] : a:data['events']
+    let l:events = type(a:events) == type('') ? [a:events] : a:events
     for l:event in l:events
-        let l:exec =  'call s:notify_event_handler(' . a:data['handler_index'] . ')'
+        let l:exec =  'call s:fromEventNotifyAddListenerHandler("' . a:groupName . '")'
         if type(l:event) == type('')
             execute 'au ' . l:event . ' * ' . l:exec
         else
@@ -301,27 +284,51 @@ function! s:fromEventFactory(data, start, sink) abort
         endif
     endfor
     execute 'augroup end'
+    return function('s:fromEventRemoveListener', [a:groupName])
 endfunction
 
-function! s:fromEventHandlerCallback(data) abort
-    " send v:event if it exists
-    call a:data['sink'](1, callbag#undefined())
-endfunction
-
-function! s:fromEventSinkHandler(data, t, ...) abort
-    if a:t != 2 | return | endif
-    let a:data['disposed'] = 1
-    execute 'augroup ' a:data['augroup']
+function! s:fromEventRemoveListener(groupName) abort
+    execute 'augroup ' a:groupName
     autocmd!
     execute 'augroup end'
-    if has_key(s:event_handlers_data, a:data['handler_index'])
-        call remove(s:event_handlers_data, a:data['handler_index'])
+    if has_key(s:fromEventHandlerCallbacks, a:groupName)
+        call remove(s:fromEventHandlerCallbacks, a:groupName)
     endif
 endfunction
 
-function! s:notify_event_handler(index) abort
-    let l:data = s:event_handlers_data[a:index]
-    call l:data['handler']()
+function! s:fromEventNotifyAddListenerHandler(groupName) abort
+    call s:fromEventHandlerCallbacks[a:groupName]()
+endfunction
+
+function! callbag#fromEvent(events, ...) abort
+    let l:ctx = { 'events': a:events }
+    if a:0 > 0
+        let l:ctx['augroup'] = a:1
+    else
+        let l:ctx['augroup'] = s:fromEventGenerateListenerGroupName()
+    endif
+    return callbag#createSource(function('s:fromEventCreateSourceFn', [l:ctx]))
+endfunction
+
+function! s:fromEventCreateSourceFn(ctx, o) abort
+    let l:ctxCreateSource = { 'ctx': a:ctx, 'o': a:o }
+
+    let l:ctxCreateSource['unsubscribe'] = s:fromEventAddListener(a:ctx['events'], function('s:fromEventCreateSourceHandlerFn', [l:ctxCreateSource]), a:ctx['augroup'])
+
+    return function('s:fromEventDisposeFn', [l:ctxCreateSource])
+endfunction
+
+function! s:fromEventCreateSourceHandlerFn(ctxCreateSource) abort
+    let a:ctxCreateSource['o']['next'](callbag#undefined())
+endfunction
+
+function! s:fromEventDisposeFn(ctxCreateSource) abort
+    execute 'augroup ' . a:ctxCreateSource['ctx']['augroup']
+    autocmd!
+    execute 'augroup end'
+    if has_key(a:ctxCreateSource, 'unsubscribe')
+        call a:ctxCreateSource['unsubscribe']()
+    endif
 endfunction
 " }}}
 
