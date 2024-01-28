@@ -246,6 +246,53 @@ function! s:createSourceFnTalkbackFn(ctxCreateSource, t, d) abort
 endfunction
 " }}}
 
+" create() {{{
+function! callbag#create(...) abort
+    let l:ctx = {}
+    if a:0 > 0
+        let l:ctx['producer'] = a:1
+    endif
+    return callbag#createSource(function('s:createCreateSourceFn', [l:ctx]))
+endfunction
+
+function! s:createCreateSourceFn(ctx, o) abort
+    let l:ctxCreateSource = { 'o': a:o }
+
+    let l:ctxCreateSource['unsubscribe'] = a:ctx['producer'](
+        \ function('s:createNextFn', [l:ctxCreateSource]),
+        \ function('s:createErrorFn', [l:ctxCreateSource]),
+        \ function('s:createCompleteFn', [l:ctxCreateSource]))
+    return function('s:createDisposeFn', [l:ctxCreateSource])
+endfunction
+
+function! s:createNextFn(ctxCreateSource, value) abort
+    call a:ctxCreateSource['o']['next'](a:value)
+endfunction
+
+function! s:createErrorFn(ctxCreateSource, value) abort
+    call a:ctxCreateSource['o']['error'](a:value)
+    if has_key(a:ctxCreateSource, 'unsubscribe')
+        call a:ctxCreateSource['unsubscribe']()
+        call remove(a:ctxCreateSource, 'unsubscribe')
+    endif
+endfunction
+
+function! s:createCompleteFn(ctxCreateSource) abort
+    call a:ctxCreateSource['o']['complete']()
+    if has_key(a:ctxCreateSource, 'unsubscribe')
+        call a:ctxCreateSource['unsubscribe']()
+        call remove(a:ctxCreateSource, 'unsubscribe')
+    endif
+endfunction
+
+function! s:createDisposeFn(ctxCreateSource) abort
+    if has_key(a:ctxCreateSource, 'unsubscribe')
+        call a:ctxCreateSource['unsubscribe']()
+        call remove(a:ctxCreateSource, 'unsubscribe')
+    endif
+endfunction
+" }}}
+
 " empty() {{{
 function! callbag#empty() abort
     return callbag#createSource(function('s:emptyCreateSourceFn'))
