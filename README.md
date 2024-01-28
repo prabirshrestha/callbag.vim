@@ -6,57 +6,57 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
-| Yes           | create                                                 |
+| No            | create                                                 |
 | Yes           | empty                                                  |
 | Yes           | fromEvent                                              |
 | Yes           | fromList                                               |
-| Yes           | fromPromise                                            |
+| No            | fromPromise                                            |
 | Yes           | interval                                               |
 | Yes           | lazy                                                   |
 | Yes           | never                                                  |
 | Yes           | of                                                     |
+| Yes           | share                                                  |
 | Yes           | throwError                                             |
 
 ## Sink Factories
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
-| Yes           | forEach                                                |
+| No            | forEach                                                |
 | Yes           | subscribe                                              |
-| Yes           | toList                                                 |
+| Yes           | toBlockingList                                         |
 
 ## Subjects
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
 | Yes           | createSubject                                          |
-| Yes           | createBehaviorSubject                                 |
-| Yes           | share                                                  |
+| Yes           | createBehaviorSubject                                  |
 
 ## Operators
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
-| Yes           | combine                                                |
-| Yes           | concat                                                 |
+| No            | combine                                                |
+| No            | concat                                                 |
 | Yes           | debounceTime                                           |
-| Yes           | delay                                                  |
+| No            | delay                                                  |
 | Yes           | distinctUntilChanged                                   |
 | Yes           | filter                                                 |
 | Yes           | flatMap                                                |
-| Yes           | flatten                                                |
-| Yes           | group                                                  |
+| No            | flatten                                                |
+| No            | group                                                  |
 | Yes           | map                                                    |
 | Yes           | materialize                                            |
 | Yes           | merge                                                  |
 | Yes           | mergePool                                              |
 | Yes           | reduce                                                 |
 | Yes           | scan                                                   |
-| Yes           | skip                                                   |
+| No            | skip                                                   |
 | Yes           | switchMap                                              |
 | Yes           | take                                                   |
 | Yes           | takeUntil                                              |
-| Yes           | takeWhile                                              |
+| No            | takeWhile                                              |
 | Yes           | tap                                                    |
 | No            | buffer                                                 |
 | No            | bufferTime                                             |
@@ -81,7 +81,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
-| Yes           | spawn                                                  |
+| No            | spawn                                                  |
 
 `spawn` uses `job_start` in Vim8+ and `jobstart` in Neovim.
 
@@ -89,7 +89,7 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 
 | Implemented   | Name                                                   |
 |---------------|--------------------------------------------------------|
-| Yes           | operate                                                |
+| No            | operate                                                |
 | Yes           | pipe                                                   |
 | Yes           | createSource                                           |
 
@@ -159,7 +159,7 @@ Refer to [examples.vim](examples.vim) for more.
 
 ## Synchronously waiting for completion or error
 
-`callbag#toList()` operator with `wait()` will allow to synchronously wait for 
+`callbag#toBlockingList()` operator with `wait()` will allow to synchronously wait for 
 completion or error. Default value for `sleep` is `1` miliseconds and `timeout` 
 is `-1` which means it will never timeout.
 
@@ -168,7 +168,7 @@ try
     let l:result = callbag#pipe(
         \ callbag#interval(250),
         \ callbag#take(3),
-        \ callbag#toList(),
+        \ callbag#toBlockingList(),
         \ ).wait({ 'sleep': 1, 'timeout': 5000 })
     echom l:result
 catch
@@ -184,7 +184,7 @@ for timeout. By default `wait()` will auto unsubscribe when it completes or erro
 let l:result = callbag#pipe(
     \ callbag#interval(250),
     \ callbag#take(10),
-    \ callbag#toList(),
+    \ callbag#toBlockingList(),
     \ )
 
 call timer_start(250, {x->l:result.unsubscribe()})

@@ -1298,7 +1298,6 @@ endfunction
 function! s:toBlockingListTimeoutCallback(opt, ...) abort
     let a:opt['timedout'] = 1
 endfunction
-
 " }}}
 
 " }}}
