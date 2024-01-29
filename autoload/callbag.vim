@@ -366,7 +366,7 @@ function! s:fromEventCreateSourceFn(ctx, o) abort
 endfunction
 
 function! s:fromEventCreateSourceHandlerFn(ctxCreateSource) abort
-    let a:ctxCreateSource['o']['next'](callbag#undefined())
+    call a:ctxCreateSource['o']['next'](callbag#undefined())
 endfunction
 
 function! s:fromEventDisposeFn(ctxCreateSource) abort
