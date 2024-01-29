@@ -32,8 +32,8 @@ function! callbag#embedder#embed(...) abort
 		echom 'namespace required'
 	endif
 	
-	
 	let l:lines = readfile(s:autoload_root . '/callbag.vim')
+	let l:lines = map(l:lines, {_, l -> substitute(l, '__callbag', '__' . substitute(l:args['namespace'], '#', '__', 'g'), 'g')})
 	let l:lines = map(l:lines, {_, l -> substitute(l, '\V\C\<callbag', l:args['namespace'], 'g')})
 	
 	let l:content = [
