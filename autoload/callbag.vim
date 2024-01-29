@@ -554,7 +554,7 @@ endfunction
 " }}}
 
 " distinctUntilChanged() {{{
-function! callbag#distinctUntilChanged() abort
+function! callbag#distinctUntilChanged(...) abort
     let l:ctx = { 'comparator': a:0 == 0 ? function('s:distinctUntilChangedDefaultComparator') : a:1 }
     return function('s:distinctUntilChangedFn', [l:ctx])
 endfunction
