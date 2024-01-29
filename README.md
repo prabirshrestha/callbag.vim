@@ -33,6 +33,8 @@ Lightweight observables and iterables for VimScript based on [Callbag Spec](http
 | Yes           | createSubject                                          |
 | Yes           | createBehaviorSubject                                  |
 
+Use `asObservable` to convert `Subject` to observable.
+
 ## Operators
 
 | Implemented   | Name                                                   |

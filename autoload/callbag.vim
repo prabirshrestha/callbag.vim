@@ -114,19 +114,47 @@ endfunction
 
 " ***** SUBJECT ***** {{{
 
+" asObservable() {{{
+function! s:asObservable(o) abort
+    return callbag#create(function('s:asObservableCreate', [a:o]))
+endfunction
+
+function! s:asObservableCreate(o, next, error, complete) abort
+    return a:o['subscribe']({
+        \ 'next': function('s:asObservableNext', [a:next]),
+        \ 'error': function('s:asObservableError', [a:error]),
+        \ 'complete': function('s:asObservableComplete', [a:complete]),
+        \ })
+endfunction
+
+function! s:asObservableNext(next, value) abort
+    call a:next(a:value)
+endfunction
+
+function! s:asObservableError(error, err) abort
+    call a:error(a:err)
+endfunction
+
+function! s:asObservableComplete(complete) abort
+    call a:complete()
+endfunction
+" }}}
+
 " createSubject() {{{
 function! callbag#createSubject() abort
     let l:ctx = { 'observers': [] }
     let l:ctx['next'] = function('s:createSubjectNextFn', [l:ctx])
     let l:ctx['error'] = function('s:createSubjectErrorFn', [l:ctx])
     let l:ctx['complete'] = function('s:createSubjectCompleteFn', [l:ctx])
-    let l:ctx['unsubscribeSubject'] = function('s:createSubjectUnsubscribeSubjectFn', [l:ctx])
-    let l:ctx['subscribeSubject'] = function('s:createSubjectSubscribeSubjectFn', [l:ctx])
+    let l:ctx['unsubscribe'] = function('s:createSubjectUnsubscribeSubjectFn', [l:ctx])
+    let l:ctx['subscribe'] = function('s:createSubjectSubscribeSubjectFn', [l:ctx])
+    let l:ctx['asObservable'] = function('s:asObservable', [l:ctx])
     return {
         \ 'next': l:ctx['next'],
         \ 'error': l:ctx['error'],
         \ 'complete': l:ctx['complete'],
-        \ 'subscribe': l:ctx['subscribeSubject'],
+        \ 'subscribe': l:ctx['subscribe'],
+        \ 'asObservable': l:ctx['asObservable'],
         \ }
 endfunction
 
@@ -170,20 +198,22 @@ function! s:createSubjectSubscribeSubjectFn(ctx, listener) abort
 endfunction
 
 function! s:createSubjectSubscribeSubjectUnsubscribeFn(ctx, observer) abort
-    call a:ctx['unsubscribeSubject'](a:observer)
+    call a:ctx['unsubscribe'](a:observer)
 endfunction
 " }}}
 
 " createBehaviorSubject() {{{
 function! callbag#createBehaviorSubject(initialValue) abort
     let l:ctx = { 'subject': callbag#createSubject(), 'lastValue': a:initialValue }
-    let l:ctx['subscribeSubject'] = function('s:createBehaviorSubjectSubscribeSubjectFn', [l:ctx])
+    let l:ctx['subscribe'] = function('s:createBehaviorSubjectSubscribeSubjectFn', [l:ctx])
     let l:ctx['subscribeSubjectNextFn'] = function('s:createBehaviorSubjectNextFn', [l:ctx])
+    let l:ctx['asObservable'] = function('s:asObservable', [l:ctx])
     return {
         \ 'next': l:ctx['subscribeSubjectNextFn'],
         \ 'error': l:ctx['subject']['error'],
         \ 'complete': l:ctx['subject']['complete'],
-        \ 'subscribe': l:ctx['subscribeSubject']
+        \ 'subscribe': l:ctx['subscribe']
+        \ 'asObservable': l:ctx['asObservable'],
         \ }
 endfunction
 
@@ -492,8 +522,6 @@ function! s:timerDisposeFn(ctxCreateSource) abort
         call timer_stop(a:ctxCreateSource['periodTimerId'])
     endif
 endfunction
-" }}}
-
 " }}}
 
 " ***** OPERATORS ***** {{{

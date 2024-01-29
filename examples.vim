@@ -182,19 +182,22 @@ function! callbag#demo() abort
         \ }),
         \ )
 
-    let l:Subject = callbag#makeSubject()
-    let s:Dispose = callbag#pipe(
-        \ l:Subject,
-        \ callbag#subscribe({
-        \   'next': {d->s:log(d)},
-        \   'error': {e->s:log(e)},
-        \   'complete': {->s:Dispose()},
-        \ })
-        \ )
-    call l:Subject(1, 'hello')
-    call l:Subject(1, 'world')
-    call l:Subject(2, callbag#undefined())
+        let l:subject = callbag#createSubject()
 
+        let l:result = callbag#pipe(
+            \ s:subject.asObservable(),
+            \ callbag#take(3),
+            \ callbag#subscribe({
+            \   'next': {x-> s:log(x)},
+            \   'complete': {-> s:log('complete')},
+            \ }),
+            \ )
+
+        call s:subject['next']('a')
+        call s:subject['next']('b')
+        call s:subject['next']('c')
+        call s:subject['next']('d')
+        call s:subject['next']('e')
 
     let s:ShareSource = callbag#share()(
         \ callbag#pipe(
