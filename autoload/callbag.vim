@@ -212,7 +212,7 @@ function! callbag#createBehaviorSubject(initialValue) abort
         \ 'next': l:ctx['subscribeSubjectNextFn'],
         \ 'error': l:ctx['subject']['error'],
         \ 'complete': l:ctx['subject']['complete'],
-        \ 'subscribe': l:ctx['subscribe']
+        \ 'subscribe': l:ctx['subscribe'],
         \ 'asObservable': l:ctx['asObservable'],
         \ }
 endfunction
