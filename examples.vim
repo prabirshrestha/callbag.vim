@@ -272,17 +272,21 @@ function! callbag#demo() abort
         echom v:exception . ' ' . v:throwpoint
     endtry
 
-    " let s:Stdin = callbag#makeSubject()
+    " let s:stdin = callbag#createSubject()
     " call callbag#pipe(
-    "     \ callbag#spawn(['bash', '-c', 'read i; echo $i'], { 'stdin': s:Stdin }),
+    "     \ callbag#spawn(['bash', '-c', 'read i; echo $i'], {
+    "     \   'stdin': s:stdin.asObservable(),
+    "     \   'stdout': 1,
+    "     \ }),
     "     \ callbag#subscribe({
     "     \   'next':{x->s:log(['next', x])},
     "     \   'complete':{->s:log('complete')},
     "     \   'error':{x->s:log(['error', x])},
     "     \ }),
     "     \ )
-    " call s:Stdin(1, 'hello')
-    " call s:Stdin(2, callbag#undefined())
+    " call s:stdin.next('hello')
+    " call s:stdin.next('world')
+    " call s:stdin.complete()
 
     " Plug 'vim-jp/vital.vim'
     "
