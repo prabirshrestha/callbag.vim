@@ -1074,7 +1074,7 @@ function! s:shareDisposeFn(ctxSource, o) abort
         endif
         let l:i += 1
     endwhile
-    if len(a:ctxSource['observers']) == 0 && has_key(a:ctxSource, 'unsubscribe'))
+    if len(a:ctxSource['observers']) == 0 && has_key(a:ctxSource, 'unsubscribe')
       call a:ctxSource['unsubscribe']()
     endif
 endfunction
