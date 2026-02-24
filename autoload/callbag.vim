@@ -708,13 +708,20 @@ function! s:toListWait(data, ...) abort
         let l:opt['timedout'] = 0
         let l:opt['sleep'] = get(l:opt, 'sleep', 1)
         let l:opt['timeout'] = get(l:opt, 'timeout', -1)
+        let l:opt['on_interrupt'] = get(l:opt, 'on_interrupt', v:null)
 
         if l:opt['timeout'] > -1
             let l:opt['timer'] = timer_start(l:opt['timeout'], function('s:toListTimeoutCallback', [l:opt]))
         endif
 
         while !a:data['done'] && !l:opt['timedout']
-            exec 'sleep ' . l:opt['sleep'] . 'm'
+            try
+                exec 'sleep ' . l:opt['sleep'] . 'm'
+            catch /^Vim:Interrupt$/
+                if l:opt['on_interrupt'] isnot v:null
+                    call l:opt['on_interrupt'](l:opt)
+                endif
+            endtry
         endwhile
 
         if has_key(l:opt, 'timer')
