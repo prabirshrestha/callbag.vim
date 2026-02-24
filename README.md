@@ -130,7 +130,7 @@ let completeNotification = { 'kind': 'C' }
 ## Difference with callbag spec
 
 While the original callbag spec requires payload to be optional - `(type: number, payload?: any) => void`,
-callbag.vim requires payload to be required. This is primarily due to limition on how vimscript functions works.
+callbag.vim requires payload to be required. This is primarily due to limitation on how vimscript functions works.
 Having optional parameter and using `...` and `a:0` to read the extra args and then use `a:1` makes the code complicated.
 You can use `callbag#undefined()` method to pass undefined. `callbag#isUndefined(value)`
 can be used to check if a value is defined or undefined.
@@ -158,7 +158,7 @@ Refer to [examples.vim](examples.vim) for more.
 ## Synchronously waiting for completion or error
 
 `callbag#toList()` operator with `wait()` will allow to synchronously wait for 
-completion or error. Default value for `sleep` is `1` miliseconds and `timeout` 
+completion or error. Default value for `sleep` is `1` milliseconds and `timeout`
 is `-1` which means it will never timeout.
 
 ```vim
